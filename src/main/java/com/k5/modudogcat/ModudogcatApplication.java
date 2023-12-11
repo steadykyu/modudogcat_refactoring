@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 
 @EnableJpaAuditing
 @SpringBootApplication(exclude = SecurityAutoConfiguration.class) //Todo: 임시 추가 - 로그인 확인하려면 제거해야 함
+//@SpringBootApplication
 public class ModudogcatApplication {
 	public static void main(String[] args) {
 

@@ -27,7 +27,7 @@ public class SellerService {
 
     private final UserRepository userRepository;
 
-    private final PasswordEncoder passwordEncoder;
+//    private final PasswordEncoder passwordEncoder; // TempTest: 리팩토링을 임시 설정
 
     private final ProductRepository productRepository;
 
@@ -36,7 +36,7 @@ public class SellerService {
     public Seller createSeller(Seller seller) {
         verifiedByLoginId(seller);
         verifiedByregistrationNumber(seller);
-        setEncodedPassword(seller);
+//        setEncodedPassword(seller);
 
         return sellerRepository.save(seller);
     }
@@ -56,10 +56,11 @@ public class SellerService {
 
     }
 
-    //패스워드 암호화
-    private void setEncodedPassword(Seller seller) {
-        seller.setPassword(passwordEncoder.encode(seller.getPassword()));
-    }
+    // TempTest: 리팩토링을 임시 설정
+//    //패스워드 암호화
+//    private void setEncodedPassword(Seller seller) {
+//        seller.setPassword(passwordEncoder.encode(seller.getPassword()));
+//    }
 
     //로그인 ID 검증
     private void verifiedByLoginId(Seller seller) {
@@ -85,18 +86,20 @@ public class SellerService {
                 .orElseThrow(() -> {
                     throw new BusinessLogicException(ExceptionCode.SELLER_NOT_FOUND);
                 });
-        verifiedApprovedSeller(findSeller);
+        //TempTest: 임시 주석
+//        verifiedApprovedSeller(findSeller);
         return findSeller;
     }
 
     //판매자 상태 검증
-    public void verifiedApprovedSeller(Seller findSeller) {
-        if(findSeller.getSellerStatus().getStatus().equals("가입 거절")) {
-            throw new BusinessLogicException(ExceptionCode.SELLER_REJECTED);
-        } else if(findSeller.getSellerStatus().getStatus().equals("승인 대기 중")) {
-            throw new BusinessLogicException(ExceptionCode.SELLER_WAITING);
-        }
-    }
+    //TempTest: 임시 주석
+//    public void verifiedApprovedSeller(Seller findSeller) {
+//        if(findSeller.getSellerStatus().getStatus().equals("가입 거절")) {
+//            throw new BusinessLogicException(ExceptionCode.SELLER_REJECTED);
+//        } else if(findSeller.getSellerStatus().getStatus().equals("승인 대기 중")) {
+//            throw new BusinessLogicException(ExceptionCode.SELLER_WAITING);
+//        }
+//    }
 
     //sellerId 가져오기
     public Long findSellerIdById(Long userId) {

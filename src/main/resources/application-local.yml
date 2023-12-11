@@ -54,3 +54,4 @@ jwt:
 config:
   domain: http://localhost:8080
   adminId: ${ADMIN_ID}
+    # ${ADMIN_ID} -> 환경변수를 일단 admin으로 등록

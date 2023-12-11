@@ -55,10 +55,12 @@ public class UserController {
         return new ResponseEntity(new SingleResponseDto<>(response), HttpStatus.OK);
     }
 
-    @GetMapping("/my-page")
-    public ResponseEntity getUser(){
-        String principal = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        long userId = Long.parseLong(principal);
+//    @GetMapping("/my-page")
+    @GetMapping("/my-page/{user_id}") // TempTest: 리팩토링을 임시 설정
+    public ResponseEntity getUser(@PathVariable("user_id") long userId){
+//        String principal = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        // 회원 아이디를 찾아와야함
+//        long userId = Long.parseLong(principal);
         User findUser = userService.findVerifiedUserById(userId);
         UserDto.Response response = mapper.userToUserResponse(findUser);
 

@@ -19,13 +19,13 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class UserService {
     private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
+//    private final PasswordEncoder passwordEncoder; // TempTest: 리팩토링을 임시 설정
     private final CustomAuthorityUtils customAuthorityUtils;
 
     public User createUser(User user){
         verifiedByLoginId(user);
 //        verifiedByEmail(user);
-        setEncodedPassword(user);
+//        setEncodedPassword(user); // TempTest: 리팩토링을 임시 설정
         setDefaultRole(user);
         User verifiedUser = verifiedAdmin(user);
         // todo : Roles가 관리자면 관리자 객체를 생성시켜 넣고 판매자면 판매자 객체를 생성시켜 넣기
@@ -40,16 +40,18 @@ public class UserService {
 //        user.getRoles().add("USER");
     }
 
-    private void setEncodedPassword(User user){
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
-    }
+    // TempTest: 리팩토링을 임시 설정
+//    private void setEncodedPassword(User user){
+//        user.setPassword(passwordEncoder.encode(user.getPassword()));
+//    }
 
     public User updateUser(User user){
         Long userId = user.getUserId();
         User findUser = findVerifiedUserById(userId);
 
-        Optional.ofNullable(user.getPassword())
-                .ifPresent(newPassword -> findUser.setPassword(passwordEncoder.encode(newPassword)));
+        // TempTest: 리팩토링을 임시 설정
+//        Optional.ofNullable(user.getPassword())
+//                .ifPresent(newPassword -> findUser.setPassword(passwordEncoder.encode(newPassword)));
         Optional.ofNullable(user.getAddress())
                 .ifPresent(newAddress -> findUser.setAddress(newAddress));
         Optional.ofNullable(user.getEmail())
@@ -91,7 +93,7 @@ public class UserService {
                 pageable.getPageSize(),
                 Sort.by("createdAt").descending());
         // Active한 User들만 가져온 후, 페이징 객체로 생성
-        Page<User> findUsers = userRepository.findAllByUserStatus(User.UserStatus.USER_ACTIVE, pageable);
+        Page<User> findUsers = userRepository.findAllByUserStatus(User.UserStatus.USER_ACTIVE, of);
 
         return findUsers;
     }
@@ -132,7 +134,7 @@ public class UserService {
     }
 
     private void makeCart(User user){
-        if(user.getRoles().contains("SELLER") || user.getRoles().contains("SELLER")){
+        if(user.getRoles().contains("SELLER") || user.getRoles().contains("ADMIN")){
             user.setCart(null);
         }
     }
