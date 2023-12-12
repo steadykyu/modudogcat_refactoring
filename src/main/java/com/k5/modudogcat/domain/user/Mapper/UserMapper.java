@@ -4,6 +4,8 @@ import com.k5.modudogcat.domain.cart.entity.Cart;
 import com.k5.modudogcat.domain.user.dto.UserDto;
 import com.k5.modudogcat.domain.user.entity.User;
 import org.mapstruct.Mapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -31,4 +33,10 @@ public interface UserMapper {
     User userPatchToUser(UserDto.Patch patchDto);
     UserDto.Response userToUserResponse(User user);
     List<UserDto.Response> usersToUsersResponse(List<User> userList);
+
+    default UserDto.PagingResponse pageToPagingResponse(Page<User> pageUsers){
+        List<User> users = pageUsers.getContent();
+        List<UserDto.Response> responses = usersToUsersResponse(users);
+        return new UserDto.PagingResponse(responses, pageUsers);
+    }
 }

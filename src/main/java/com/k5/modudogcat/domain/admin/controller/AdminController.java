@@ -42,8 +42,8 @@ public class AdminController {
     }
 
     public ResponseEntity updateToUser(Seller seller) {
-
-        sellerService.verifiedApprovedSeller(seller);
+        // TempTest: 임시주석
+//        sellerService.verifiedApprovedSeller(seller);
         AdminDto.Update update = adminMapper.sellerToSellerUpdateDto(seller);
         User user = adminMapper.sellerUpdateDtoToUser(update);
         adminService.updateToUser(user);

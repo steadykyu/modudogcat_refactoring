@@ -2,6 +2,9 @@ package com.k5.modudogcat.domain.user.service;
 
 import com.k5.modudogcat.domain.admin.entity.Admin;
 import com.k5.modudogcat.domain.admin.repository.AdminRepository;
+import com.k5.modudogcat.domain.cart.entity.Cart;
+import com.k5.modudogcat.domain.user.Mapper.UserMapper;
+import com.k5.modudogcat.domain.user.dto.UserDto;
 import com.k5.modudogcat.domain.user.repository.UserRepository;
 import com.k5.modudogcat.exception.BusinessLogicException;
 import com.k5.modudogcat.exception.ExceptionCode;
@@ -15,22 +18,60 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * 비즈니스 로직 담당 서비스 계층
+ */
 @Service
 @RequiredArgsConstructor
 public class UserService {
     private final UserRepository userRepository;
 //    private final PasswordEncoder passwordEncoder; // TempTest: 리팩토링을 임시 설정
     private final CustomAuthorityUtils customAuthorityUtils;
+    private final UserMapper mapper;
 
+    //--------------------------------------------------------------------------------------------------
+    //                                  화면 로직
+    //--------------------------------------------------------------------------------------------------
+    public Long postUser(UserDto.Post postDto){
+        User user = mapper.userPostToUser(postDto);
+        User postUser = createUser(user); // 비즈니스 로직 함수
+        return postUser.getUserId();
+    }
+
+    public UserDto.Response patchUser(UserDto.Patch patchDto){
+        User user = mapper.userPatchToUser(patchDto);
+        User updateUser = updateUser(user); // 비즈니스 로직 함수
+        UserDto.Response response = mapper.userToUserResponse(updateUser);
+        return response;
+    }
+
+    public UserDto.Response getUser(Long userId){
+        User findUser = findVerifiedUserById(userId); // 비즈니스 로직 함수
+        UserDto.Response response = mapper.userToUserResponse(findUser);
+        return response;
+    }
+
+    public UserDto.PagingResponse getUsers(Pageable pageable){
+        Page<User> pageUsers = findUsers(pageable); // 비즈니스 로직
+
+        UserDto.PagingResponse pagingResponse = mapper.pageToPagingResponse(pageUsers);
+//        List<User> users = pageUsers.getContent();
+//        List<UserDto.Response> responses = mapper.usersToUsersResponse(users);
+        return pagingResponse;
+    }
+
+
+    //--------------------------------------------------------------------------------------------------
+    //                                  핵심 비즈니스 로직
+    //--------------------------------------------------------------------------------------------------
     public User createUser(User user){
+
         verifiedByLoginId(user);
-//        verifiedByEmail(user);
-//        setEncodedPassword(user); // TempTest: 리팩토링을 임시 설정
+//        setEncodedPassword(user); // TempTest: Security Code 임시 제거
         setDefaultRole(user);
         User verifiedUser = verifiedAdmin(user);
-        // todo : Roles가 관리자면 관리자 객체를 생성시켜 넣고 판매자면 판매자 객체를 생성시켜 넣기
-        // UserRoles 클래스와 UserAuthenticationSuccessHandler.sendAuthorization() 참고!
         makeCart(verifiedUser);
+
         return userRepository.save(verifiedUser);
     }
 
@@ -136,7 +177,9 @@ public class UserService {
     private void makeCart(User user){
         if(user.getRoles().contains("SELLER") || user.getRoles().contains("ADMIN")){
             user.setCart(null);
+            return;
         }
+        user.addCart(new Cart());
     }
 
     public void verifiedAdminRole(User findUser) {

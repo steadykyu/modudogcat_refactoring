@@ -45,7 +45,7 @@ public class User extends Auditable {
     @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.PERSIST)
     @JoinColumn(name = "admin_id")
     private Admin admin;
-    @OneToOne(mappedBy = "user", cascade = {CascadeType.PERSIST, CascadeType.REMOVE})
+    @OneToOne(fetch = FetchType.LAZY, mappedBy = "user", cascade = {CascadeType.PERSIST, CascadeType.REMOVE})
     private Cart cart;
     
     public enum UserStatus {
@@ -58,4 +58,24 @@ public class User extends Auditable {
             this.status = status;
         }
     }
+
+    /**
+     * DTO 교환을 위한 생성자
+     */
+    public User(String loginId, String name, String password, String email, String address) {
+        this.loginId = loginId;
+        this.name = name;
+        this.password = password;
+        this.email = email;
+        this.address = address;
+    }
+
+    /**
+     * 연관관계 편의 메서드
+     */
+    public void addCart(Cart cart){
+        this.cart = cart;
+        cart.setUser(this);
+    }
+
 }

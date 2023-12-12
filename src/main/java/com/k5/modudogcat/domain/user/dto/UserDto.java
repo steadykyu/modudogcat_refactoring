@@ -1,13 +1,16 @@
 package com.k5.modudogcat.domain.user.dto;
 
+import com.k5.modudogcat.domain.user.Mapper.UserMapper;
 import com.k5.modudogcat.domain.user.entity.User;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.springframework.data.domain.Page;
 
 import javax.validation.constraints.*;
 import java.time.LocalDateTime;
+import java.util.List;
 
 public class UserDto {
     @Getter
@@ -59,5 +62,14 @@ public class UserDto {
         public String getUserStatus() {
             return userStatus.getStatus();
         }
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class PagingResponse {
+        private List<Response> responses;
+        private Page pageUsers;
     }
 }
