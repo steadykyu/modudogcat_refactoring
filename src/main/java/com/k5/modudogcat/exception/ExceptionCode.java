@@ -28,7 +28,8 @@ public enum ExceptionCode {
     NOT_HAS_ADMIN_ROLE(409, "관리자 권한이 없습니다"),
     USER_NO_CART(404,"장바구니를 가지고 있지 않은 회원입니다."),
     WRONG_PRODUCT_OR_CART(409, "올바르지 않은 productId 또는 cart 번호입니다."),
-    CART_ALREADY_EXISTS(409, "현재 유저는 해당 상품을 이미 장바구니 안에 담고 있습니다.");
+    CART_ALREADY_EXISTS(409, "현재 유저는 해당 상품을 이미 장바구니 안에 담고 있습니다."),
+    NOT_ADMIN_OR_SELLER_ALLOWED(409, "관리자가 아니거나 적합한 판매자가 아닙니다.");
 
     private int status;
 

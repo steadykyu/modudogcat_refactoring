@@ -25,7 +25,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class UserService {
     private final UserRepository userRepository;
-//    private final PasswordEncoder passwordEncoder; // TempTest: 리팩토링을 임시 설정
+    private final PasswordEncoder passwordEncoder;
     private final CustomAuthorityUtils customAuthorityUtils;
     private final UserMapper mapper;
 
@@ -55,8 +55,7 @@ public class UserService {
         Page<User> pageUsers = findUsers(pageable); // 비즈니스 로직
 
         UserDto.PagingResponse pagingResponse = mapper.pageToPagingResponse(pageUsers);
-//        List<User> users = pageUsers.getContent();
-//        List<UserDto.Response> responses = mapper.usersToUsersResponse(users);
+
         return pagingResponse;
     }
 
@@ -67,7 +66,7 @@ public class UserService {
     public User createUser(User user){
 
         verifiedByLoginId(user);
-//        setEncodedPassword(user); // TempTest: Security Code 임시 제거
+        setEncodedPassword(user);
         setDefaultRole(user);
         User verifiedUser = verifiedAdmin(user);
         makeCart(verifiedUser);
@@ -81,18 +80,16 @@ public class UserService {
 //        user.getRoles().add("USER");
     }
 
-    // TempTest: 리팩토링을 임시 설정
-//    private void setEncodedPassword(User user){
-//        user.setPassword(passwordEncoder.encode(user.getPassword()));
-//    }
+    public void setEncodedPassword(User user){
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
+    }
 
     public User updateUser(User user){
         Long userId = user.getUserId();
         User findUser = findVerifiedUserById(userId);
 
-        // TempTest: 리팩토링을 임시 설정
-//        Optional.ofNullable(user.getPassword())
-//                .ifPresent(newPassword -> findUser.setPassword(passwordEncoder.encode(newPassword)));
+        Optional.ofNullable(user.getPassword())
+                .ifPresent(newPassword -> findUser.setPassword(passwordEncoder.encode(newPassword)));
         Optional.ofNullable(user.getAddress())
                 .ifPresent(newAddress -> findUser.setAddress(newAddress));
         Optional.ofNullable(user.getEmail())

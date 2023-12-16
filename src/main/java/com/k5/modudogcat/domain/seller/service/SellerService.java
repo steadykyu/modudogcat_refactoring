@@ -2,15 +2,20 @@ package com.k5.modudogcat.domain.seller.service;
 
 import com.k5.modudogcat.domain.order.entity.Order;
 import com.k5.modudogcat.domain.order.repository.OrderRepository;
+import com.k5.modudogcat.domain.product.dto.ProductDto;
 import com.k5.modudogcat.domain.product.entity.Product;
+import com.k5.modudogcat.domain.product.mapper.ProductMapper;
 import com.k5.modudogcat.domain.product.repository.ProductRepository;
+import com.k5.modudogcat.domain.seller.dto.SellerDto;
 import com.k5.modudogcat.domain.seller.entity.Seller;
+import com.k5.modudogcat.domain.seller.mapper.SellerMapper;
 import com.k5.modudogcat.domain.seller.repository.SellerRepository;
 import com.k5.modudogcat.domain.user.entity.User;
 import com.k5.modudogcat.domain.user.repository.UserRepository;
 import com.k5.modudogcat.exception.BusinessLogicException;
 import com.k5.modudogcat.exception.ExceptionCode;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -27,16 +32,55 @@ public class SellerService {
 
     private final UserRepository userRepository;
 
-//    private final PasswordEncoder passwordEncoder; // TempTest: 리팩토링을 임시 설정
+    private final PasswordEncoder passwordEncoder;
 
     private final ProductRepository productRepository;
 
     private final OrderRepository orderRepository;
+    private final SellerMapper sellerMapper;
+    private final ProductMapper productMapper;
+    @Value("${config.domain}")
+    private String domain;
 
+    //-----------------------------------------------
+    //                 화면 로직
+    //-----------------------------------------------
+    public Long postSeller(SellerDto.Post postDto){
+        Seller seller = sellerMapper.sellerPostToSeller(postDto);
+        Seller findSeller = createSeller(seller);
+        Long sellerId = findSeller.getSellerId();
+        return sellerId;
+    }
+    public SellerDto.Response patchSeller(SellerDto.Patch patch){
+        Seller seller = sellerMapper.sellerPatchToSeller(patch);
+        Seller updateSeller = updateSeller(seller);
+        SellerDto.Response response = sellerMapper.sellerToSellerResponse(updateSeller);
+        return response;
+    }
+    public SellerDto.Response getSeller(Long userId){
+//    public SellerDto.Response getSeller(Long sellerId){
+
+        // 회원 정보를 통해 판매자 정보를 찾아온다.
+        Long sellerId = findSellerIdById(userId);
+        Seller findSeller = findVerifiedSellerById(sellerId);
+        SellerDto.Response response = sellerMapper.sellerToSellerResponse(findSeller);
+        return response;
+    }
+
+    public ProductDto.PagingResponse getSellingProducts(Pageable pageable, Long sellerId){
+        Page<Product> pageProducts = findProducts(pageable, sellerId); // 핵심 비즈니스 로직
+
+        ProductDto.PagingResponse pagingResponse = productMapper.pageToPagingResponse(pageProducts, domain);
+        return pagingResponse;
+    }
+
+    //-----------------------------------------------
+    //                 핵심 비즈니스 로직
+    //-----------------------------------------------
     public Seller createSeller(Seller seller) {
         verifiedByLoginId(seller);
         verifiedByregistrationNumber(seller);
-//        setEncodedPassword(seller);
+        setEncodedPassword(seller);
 
         return sellerRepository.save(seller);
     }
@@ -56,11 +100,10 @@ public class SellerService {
 
     }
 
-    // TempTest: 리팩토링을 임시 설정
-//    //패스워드 암호화
-//    private void setEncodedPassword(Seller seller) {
-//        seller.setPassword(passwordEncoder.encode(seller.getPassword()));
-//    }
+    //패스워드 암호화 //Todo: 암호화 과정이 여러곳에 있는데, 이거 한번에 처리 안돼나?
+    private void setEncodedPassword(Seller seller) {
+        seller.setPassword(passwordEncoder.encode(seller.getPassword()));
+    }
 
     //로그인 ID 검증
     private void verifiedByLoginId(Seller seller) {
@@ -86,20 +129,19 @@ public class SellerService {
                 .orElseThrow(() -> {
                     throw new BusinessLogicException(ExceptionCode.SELLER_NOT_FOUND);
                 });
-        //TempTest: 임시 주석
-//        verifiedApprovedSeller(findSeller);
+        verifiedApprovedSeller(findSeller);
         return findSeller;
     }
 
     //판매자 상태 검증
-    //TempTest: 임시 주석
-//    public void verifiedApprovedSeller(Seller findSeller) {
-//        if(findSeller.getSellerStatus().getStatus().equals("가입 거절")) {
-//            throw new BusinessLogicException(ExceptionCode.SELLER_REJECTED);
-//        } else if(findSeller.getSellerStatus().getStatus().equals("승인 대기 중")) {
-//            throw new BusinessLogicException(ExceptionCode.SELLER_WAITING);
-//        }
-//    }
+
+    public void verifiedApprovedSeller(Seller findSeller) {
+        if(findSeller.getSellerStatus().getStatus().equals("가입 거절")) {
+            throw new BusinessLogicException(ExceptionCode.SELLER_REJECTED);
+        } else if(findSeller.getSellerStatus().getStatus().equals("승인 대기 중")) {
+            throw new BusinessLogicException(ExceptionCode.SELLER_WAITING);
+        }
+    }
 
     //sellerId 가져오기
     public Long findSellerIdById(Long userId) {

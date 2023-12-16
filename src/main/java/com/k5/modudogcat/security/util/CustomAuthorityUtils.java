@@ -13,7 +13,6 @@ import java.util.stream.Collectors;
 @Component
 @Getter
 public class CustomAuthorityUtils {
-    //todo: 어떤식으로 관리자 권한을 줄것인지 설정
     @Value("${config.adminId}")
     private String adminId;
     private final List<String> ADMIN_ROLES_STRING = List.of("ADMIN","SELLER", "BUYER");
@@ -29,6 +28,7 @@ public class CustomAuthorityUtils {
     }
 
     // DB 저장 용
+    // --------일단 관리자 권한은 관리자명이 설정파일의 ADMIN_ID 와 일치하면 주도록 설정
     public List<String> createRoles(User user) {
         if (user.getLoginId().equals(adminId)) {
             return ADMIN_ROLES_STRING;

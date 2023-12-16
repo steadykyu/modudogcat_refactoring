@@ -128,7 +128,7 @@
 |  | POST | PATCH | GET | DELETE |
 | --- | --- | --- | --- | --- |
 | Controller | post | patch | get | delete |
-| Service, Repository | create | update | find | remove |
+| Service, Repository | create | sellerDto | find | remove |
 <br/>
 
 🫧 `필드 id명` = 객체Id

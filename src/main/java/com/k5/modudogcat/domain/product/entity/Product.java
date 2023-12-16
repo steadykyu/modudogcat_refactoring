@@ -51,10 +51,10 @@ public class Product extends Auditable {
         }
     }
 
-    public void addProductDetailImage(ProductDetailImage pdImage){
-        this.productDetailImages.add(pdImage);
-        if(pdImage.getProduct() != this){
-            pdImage.addProduct(this);
+    public void addProductDetailImages(ProductDetailImage pdi){
+        this.productDetailImages.add(pdi);
+        if(pdi != null){
+            pdi.setProduct(this);
         }
     }
 }

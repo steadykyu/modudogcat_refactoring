@@ -12,6 +12,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -46,12 +47,11 @@ public class UserController {
         return new ResponseEntity(new SingleResponseDto<>(response), HttpStatus.OK);
     }
 //
-//    @GetMapping("/my-page")
-    @GetMapping("/my-page/{user_id}") // TempTest: 리팩토링을 임시 설정
-    public ResponseEntity getUser(@PathVariable("user_id") long userId){
-//        String principal = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        // 회원 아이디를 찾아와야함
-//        long userId = Long.parseLong(principal);
+    @GetMapping("/my-page")
+    public ResponseEntity getUser(){
+        String principal = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+//         회원 아이디를 찾아와야함
+        long userId = Long.parseLong(principal);
         UserDto.Response response = userService.getUser(userId);
 
         return new ResponseEntity(new SingleResponseDto<>(response), HttpStatus.OK);
@@ -73,7 +73,6 @@ public class UserController {
         userService.removeUser(userId);
         return new ResponseEntity(HttpStatus.NO_CONTENT);
     }
-
     // NOTE : 아이디 찾기 구현
 
 }

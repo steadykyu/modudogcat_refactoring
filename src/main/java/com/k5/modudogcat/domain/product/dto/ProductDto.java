@@ -1,10 +1,12 @@
 package com.k5.modudogcat.domain.product.dto;
 
 import com.k5.modudogcat.domain.product.entity.Product;
+import com.k5.modudogcat.domain.user.dto.UserDto;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.springframework.data.domain.Page;
 
 import java.util.List;
 
@@ -40,4 +42,12 @@ public class ProductDto {
         }
     }
 
+    @Setter
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class PagingResponse {
+        private List<ProductDto.Response> responses;
+        private Page pagingProducts;
+    }
 }

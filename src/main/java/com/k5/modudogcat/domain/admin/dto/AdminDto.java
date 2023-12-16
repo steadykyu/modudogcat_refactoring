@@ -5,6 +5,9 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.springframework.data.domain.Page;
+
+import java.util.List;
 
 public class AdminDto {
 
@@ -39,21 +42,29 @@ public class AdminDto {
     @Getter
     @Setter
     @AllArgsConstructor
-    public static class Update {
-
-        private Long sellerId;
-
-        private String loginId;
-
-        private String password;
-
-        private String name;
-
-        private String email;
-
-        private String address;
-
-        private String phone;
+    public static class PagingDto {
+        List<Response> responseList;
+        Page<Seller> pageSellers;
     }
+
+//    @Getter
+//    @Setter
+//    @AllArgsConstructor
+//    public static class SellerDto {
+//
+//        private Long sellerId;
+//
+//        private String loginId;
+//
+//        private String password;
+//
+//        private String name;
+//
+//        private String email;
+//
+//        private String address;
+//
+//        private String phone;
+//    }
 
 }

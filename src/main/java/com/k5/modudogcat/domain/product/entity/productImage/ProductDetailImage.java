@@ -21,10 +21,4 @@ public class ProductDetailImage {
     @JoinColumn(name = "product_id")
     private Product product; 
 
-    public void addProduct(Product product){
-        this.product = product;
-        if(!product.getProductDetailImages().contains(this)){
-            this.product.addProductDetailImage(this);
-        }
-    }
 }

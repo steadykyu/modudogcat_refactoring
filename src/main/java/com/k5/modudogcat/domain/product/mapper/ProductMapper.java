@@ -5,6 +5,7 @@ import com.k5.modudogcat.domain.product.entity.Product;
 import com.k5.modudogcat.domain.product.entity.productImage.ProductDetailImage;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.springframework.data.domain.Page;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -98,4 +99,11 @@ public interface ProductMapper {
     }
 
     List<ProductDto.Response> productListToResponseDtoList(List<Product> products);
+
+    default ProductDto.PagingResponse pageToPagingResponse(Page<Product> productPage, String domain){
+        List<Product> products = productPage.getContent();
+        List<ProductDto.Response> responses = productsToResponses(products, domain);
+
+        return new ProductDto.PagingResponse(responses, productPage);
+    }
 }

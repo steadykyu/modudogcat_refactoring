@@ -1,18 +1,13 @@
 package com.k5.modudogcat.domain.admin.controller;
 
 import com.k5.modudogcat.domain.admin.dto.AdminDto;
-import com.k5.modudogcat.domain.admin.mapper.AdminMapper;
 import com.k5.modudogcat.domain.admin.service.AdminService;
-import com.k5.modudogcat.domain.seller.dto.SellerDto;
 import com.k5.modudogcat.domain.seller.entity.Seller;
-import com.k5.modudogcat.domain.seller.service.SellerService;
-import com.k5.modudogcat.domain.user.dto.UserDto;
 import com.k5.modudogcat.domain.user.entity.User;
 import com.k5.modudogcat.dto.MultiResponseDto;
 import com.k5.modudogcat.dto.SingleResponseDto;
 import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,49 +23,32 @@ public class AdminController {
 
     private final AdminService adminService;
 
-    private final AdminMapper adminMapper;
-
-    private final SellerService sellerService;
 
     //관리자의 판매자 상태 변경(승인)
     @PatchMapping("/approval/{seller-id}")
     public ResponseEntity approvalSellerStatus(@PathVariable("seller-id") @Positive Long sellerId) {
+        AdminDto.Response response = adminService.approvalSeller(sellerId);
 
-        Seller updateApproval = adminService.updateApprovalSellerStatus(sellerId);
-
-        return updateToUser(updateApproval);
+        return new ResponseEntity(new SingleResponseDto<>(response), HttpStatus.OK);
     }
 
-    public ResponseEntity updateToUser(Seller seller) {
-        // TempTest: 임시주석
-//        sellerService.verifiedApprovedSeller(seller);
-        AdminDto.Update update = adminMapper.sellerToSellerUpdateDto(seller);
-        User user = adminMapper.sellerUpdateDtoToUser(update);
-        adminService.updateToUser(user);
-
-        AdminDto.Response responseApproval = adminMapper.sellerToAdminResponseDto(seller);
-        return new ResponseEntity(new SingleResponseDto<>(responseApproval), HttpStatus.OK);
-    }
-
-    //관리자의 판매자 상태 변경(거절)
+//    //관리자의 판매자 상태 변경(거절)
+    // Todo: 거절 후, 로그인시 거절된 판매자임을 알리는 예외만들기
     @PatchMapping("/rejected/{seller-id}")
-    public ResponseEntity rejectedSellerStatus(@PathVariable("seller-id") @Positive Long sellerId) {
+    public ResponseEntity rejectedSeller(@PathVariable("seller-id") @Positive Long sellerId) {
 
-        Seller updateApproval = adminService.updateRejectedSellerStatus(sellerId);
-        AdminDto.Response responseApproval = adminMapper.sellerToAdminResponseDto(updateApproval);
+        AdminDto.Response response = adminService.rejectedSeller(sellerId);
 
-        return new ResponseEntity<>(new SingleResponseDto<>(responseApproval), HttpStatus.OK);
+        return new ResponseEntity<>(new SingleResponseDto<>(response), HttpStatus.OK);
     }
 
 
-
-    //관리자의 판매자 회원가입 리스트 조회
+    //관리자의 회원가입 대기 판매자 리스트 조회
     @GetMapping
     public ResponseEntity getSellers(Pageable pageable) {
-
-        Page<Seller> pageSellers = adminService.findSellers(pageable);
-        List<Seller> sellers = pageSellers.getContent();
-        List<AdminDto.Response> responseList = adminMapper.sellersToAdminResponseDto(sellers);
+        AdminDto.PagingDto pageDtos = adminService.getSellers(pageable);
+        List<AdminDto.Response> responseList = pageDtos.getResponseList();
+        Page<Seller> pageSellers = pageDtos.getPageSellers();
 
         return new ResponseEntity(new MultiResponseDto<>(responseList, pageSellers), HttpStatus.OK);
     }
