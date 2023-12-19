@@ -6,6 +6,7 @@ import com.k5.modudogcat.domain.product.dto.ProductDto;
 import com.k5.modudogcat.domain.product.entity.Product;
 import com.k5.modudogcat.domain.product.mapper.ProductMapper;
 import com.k5.modudogcat.domain.product.repository.ProductRepository;
+import com.k5.modudogcat.domain.product.service.ProductService;
 import com.k5.modudogcat.domain.seller.dto.SellerDto;
 import com.k5.modudogcat.domain.seller.entity.Seller;
 import com.k5.modudogcat.domain.seller.mapper.SellerMapper;
@@ -19,6 +20,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Objects;
@@ -35,7 +37,6 @@ public class SellerService {
     private final PasswordEncoder passwordEncoder;
 
     private final ProductRepository productRepository;
-
     private final OrderRepository orderRepository;
     private final SellerMapper sellerMapper;
     private final ProductMapper productMapper;
@@ -150,7 +151,7 @@ public class SellerService {
         return sellerId;
     }
 
-    //sellerId가 일치하고 상품 상태가 delete가 아닌 애들만 가져오기
+    //sellerId가 일치하고 상품 상태가 delete가 아닌 상품들만 가져오기
     public Page<Product> findProducts(Pageable pageable, Long sellerId) {
         PageRequest of = PageRequest.of(pageable.getPageNumber() - 1,
                 pageable.getPageSize(),
@@ -158,18 +159,6 @@ public class SellerService {
         Page<Product> products = productRepository.findAllBySellerSellerIdAndProductStatusNotLike(sellerId, Product.ProductStatus.PRODUCT_DELETE, of);
 
         return products;
-    }
-
-    public void removeProduct(Long productId, Long sellerId) {
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new BusinessLogicException(ExceptionCode.PRODUCT_NOT_FOUND));
-        if ( product.getProductStatus().getStatus().equals("삭제된상품")) {
-            throw new BusinessLogicException(ExceptionCode.PRODUCT_NOT_FOUND);}
-        if( product.getSeller().getSellerId() != sellerId) {
-            throw new BusinessLogicException(ExceptionCode.SELLER_NOT_ALLOWED);
-        }
-        product.setProductStatus(Product.ProductStatus.PRODUCT_DELETE);
-        productRepository.save(product);
     }
 
     //sellerId가 일치하고, ORDER_DELETE가 아닌 주문들 가지고 오기

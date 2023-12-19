@@ -68,12 +68,4 @@ public class SellerController {
     }
 
 
-    //판매자의 판매 중인 상품 삭제
-    @DeleteMapping("/selling/{product-id}")
-    public ResponseEntity deleteSellingProduct(@PathVariable("product-id") @Positive Long productId){
-    sellerService.removeProduct(productId,authenticationService.findSellerIdByTokenUserId());
-        return new ResponseEntity(HttpStatus.NO_CONTENT);
-    }
-
-
 }

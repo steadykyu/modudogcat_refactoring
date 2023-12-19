@@ -2,10 +2,13 @@ package com.k5.modudogcat.domain.order.dto;
 
 import com.k5.modudogcat.domain.order.entity.Order;
 import com.k5.modudogcat.domain.product.dto.ProductDto;
+import com.k5.modudogcat.domain.user.dto.UserDto;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.springframework.data.domain.Page;
+
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
@@ -86,6 +89,15 @@ public class OrderDto {
         private Long productsCount;
 
         //@Getter 붙이고 내부 생성자 만들고 @Builder 붙여서 (순서 상관없이, 넣고 싶은 인자만 넣을 수 있게) 만들기
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class PagingResponse {
+        private List<Response> responses;
+        private Page<Order> pageOrders;
     }
 }
 

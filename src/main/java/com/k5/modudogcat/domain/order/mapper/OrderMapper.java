@@ -10,6 +10,7 @@ import com.k5.modudogcat.domain.product.mapper.ProductMapper;
 import com.k5.modudogcat.domain.user.entity.User;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.springframework.data.domain.Page;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -47,10 +48,10 @@ public interface OrderMapper {
         List<OrderProduct> orderProducts = postDto.getOrderProductDtos().stream()
                 .map(orderProductDto -> {
                     OrderProduct orderProduct = new OrderProduct();
-                    Product product = new Product();
-                    product.setProductId(orderProductDto.getProductId());
                     orderProduct.setOrder(order);
-                    orderProduct.setProduct(product);
+                    Product fkProduct = new Product();
+                    fkProduct.setProductId(orderProductDto.getProductId());
+                    orderProduct.setProduct(fkProduct);
                     orderProduct.setProductCount(orderProductDto.getProductCount());
                     return orderProduct;
                 }).collect(Collectors.toList());
@@ -110,4 +111,10 @@ public interface OrderMapper {
     List<OrderDto.Response> orderListToResponseDtoList(List<Order> orders);
 
     OrderDto.Response orderToOrderResponseDto(Order patchOrderStatus);
+
+    default OrderDto.PagingResponse pageToPagingResponse(Page<Order> pageOrders, String domain){
+        List<Order> orders = pageOrders.getContent();
+        List<OrderDto.Response> responses = ordersToOrdersResponse(orders, domain);
+        return new OrderDto.PagingResponse(responses, pageOrders);
+    }
 }

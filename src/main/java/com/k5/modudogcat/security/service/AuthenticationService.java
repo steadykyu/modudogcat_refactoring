@@ -16,7 +16,6 @@ public class AuthenticationService {
         return userId;
     }
 
-
     public Long findSellerIdByTokenUserId() {
         Long userId = getUserIdByToken();
         return sellerService.findSellerIdById(userId);
