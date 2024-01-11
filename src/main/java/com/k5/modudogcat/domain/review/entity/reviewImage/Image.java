@@ -6,7 +6,7 @@ import lombok.Setter;
 
 import javax.persistence.*;
 
-@Entity
+@Entity(name = "REVIEW_IMAGE")
 @Setter
 @Getter
 public class Image {
@@ -15,7 +15,7 @@ public class Image {
     private Long imageId;
     @Lob
     private byte[] image;
-    @Column(nullable = false, length = 50)
+    @Column(nullable = true, length = 50)
     private String type;
     @ManyToOne
     @JoinColumn(name= "review_id")

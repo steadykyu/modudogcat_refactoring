@@ -5,6 +5,7 @@ import com.k5.modudogcat.domain.review.entity.reviewImage.Image;
 import com.k5.modudogcat.domain.review.entity.Review;
 import com.k5.modudogcat.domain.review.mapper.ReviewMapper;
 import com.k5.modudogcat.domain.review.service.ReviewService;
+import com.k5.modudogcat.security.service.AuthenticationService;
 import com.k5.modudogcat.util.UriCreator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,20 +26,17 @@ import java.util.List;
 @RequestMapping("/reviews")
 public class ReviewController {
     private final ReviewService reviewService;
-    private final ReviewMapper reviewMapper;
-    @Value("${config.domain}")
-    private String domain;
+    private final AuthenticationService authenticationService;
     // 구매자가 리뷰를 작성할 수 있다.
     @PostMapping
     public ResponseEntity postReview(@RequestPart(name = "post") ReviewDto.Post postDto,
                                      @RequestPart(required = false) List<MultipartFile> images
     ) throws IOException {
-        Long userId = tokenUserId();
+        Long userId = authenticationService.getUserIdByToken();
         postDto.setUserId(userId);
-        Review review = reviewMapper.reviewPostToReview(postDto);
-        List<Image> imageList = reviewMapper.multipartFilesToImages(images);
-        Review findReview = reviewService.createReview(review, imageList);
-        URI location = UriCreator.createUri("/users/" + userId + "/reviews", findReview.getReviewId());
+
+        Long findReviewId = reviewService.postReview(postDto, images);
+        URI location = UriCreator.createUri("/users/" + userId + "/reviews", findReviewId);
 
         return ResponseEntity.created(location)
                 .body("Image uploaded successfully");
@@ -46,36 +44,28 @@ public class ReviewController {
 // 리뷰 단일조회
     @GetMapping("/{review-id}")
     public ResponseEntity getReview(@PathVariable("review-id") Long reviewId) {
-        Long userId = tokenUserId();
-        Review findReview = reviewService.findReview(reviewId);
-        ReviewDto.Response response = reviewMapper.reviewToResponse(findReview, domain);
+        ReviewDto.Response response = reviewService.getReview(reviewId);
 
         return new ResponseEntity(response, HttpStatus.OK);
     }
 // 구매자 마이페이지 - 리뷰들 조회
     @GetMapping("/userReviews")
     public ResponseEntity getUserReviews(Pageable pageable){
-        Long userId = tokenUserId();
-        Page<Review> reviewPages = reviewService.findUserReviews(pageable, userId);
-        List<Review> reviews = reviewPages.getContent();
-        List<ReviewDto.Response> responses = reviewMapper.reviewsToResponses(reviews, domain);
-
+        Long userId = authenticationService.getUserIdByToken();
+        List<ReviewDto.Response> responses = reviewService.getUserReviews(pageable, userId);
         return new ResponseEntity(responses, HttpStatus.OK);
     }
 // 상품 상세 페이지 - 리뷰들 조회
     @GetMapping("/productReviews/{product-id}")
     public ResponseEntity getProductReviews(@PathVariable("product-id") Long productId,
             Pageable pageable){
-        Page<Review> reviewPages = reviewService.findProductReviews(pageable, productId);
-        List<Review> reviews = reviewPages.getContent();
-        List<ReviewDto.Response> responses = reviewMapper.reviewsToResponses(reviews, domain);
-
+        List<ReviewDto.Response> responses = reviewService.getProductReviews(pageable, productId);
         return new ResponseEntity(responses, HttpStatus.OK);
     }
 // 구매자가 후기를 삭제하는 메서드
     @DeleteMapping("/userReviews/{review-id}")
     public ResponseEntity deleteReviewByUser(@PathVariable("review-id") Long reviewId){
-        Long userId = tokenUserId();
+
         reviewService.removeReview(reviewId);
 
         return new ResponseEntity(HttpStatus.NO_CONTENT);
@@ -83,14 +73,9 @@ public class ReviewController {
 // 관리자가 후기를 삭제하는 메서드
     @DeleteMapping("/userReviews/admin/{review-id}")
     public ResponseEntity deleteReviewByAdmin(@PathVariable("review-id") Long reviewId){
-        Long userId = tokenUserId();
+        Long userId = authenticationService.getUserIdByToken();
         reviewService.removeReviewByAdmin(reviewId, userId);
 
         return new ResponseEntity(HttpStatus.NO_CONTENT);
-    }
-    public Long tokenUserId() {
-        String principal = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        Long userId = Long.parseLong(principal);
-        return userId;
     }
 }
