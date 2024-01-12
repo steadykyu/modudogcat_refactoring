@@ -1,6 +1,8 @@
 package com.k5.modudogcat.domain.product.entity.productImage;
 
 import com.k5.modudogcat.domain.product.service.ProductService;
+import com.k5.modudogcat.exception.BusinessLogicException;
+import com.k5.modudogcat.exception.ExceptionCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -23,6 +25,9 @@ public class ProductImageController {
         byte[] thumbnailImage = (byte[]) thumbnailMap.get("파일");
 
         HttpHeaders headers = new HttpHeaders();
+
+        if(thumbnailMap.get("타입") == null) throw new BusinessLogicException(ExceptionCode.NOT_EXIST_IMAGE);
+
         headers.setContentType(MediaType.valueOf(
                 (String) thumbnailMap.get("타입")));
 
@@ -32,6 +37,8 @@ public class ProductImageController {
     @GetMapping("/productDetailImages/{productDetailImages-id}")
     public ResponseEntity<byte[]> getProductDetailImages(@PathVariable("productDetailImages-id") Long pdImageId){
         ProductDetailImage pdImage = productImageService.findProductDetailImage(pdImageId);
+
+        if(pdImage.getType() == null) throw new BusinessLogicException(ExceptionCode.NOT_EXIST_IMAGE);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.valueOf(

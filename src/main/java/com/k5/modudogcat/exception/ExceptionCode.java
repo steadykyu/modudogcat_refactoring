@@ -30,7 +30,8 @@ public enum ExceptionCode {
     WRONG_PRODUCT_OR_CART(409, "올바르지 않은 productId 또는 cart 번호입니다."),
     CART_ALREADY_EXISTS(409, "현재 유저는 해당 상품을 이미 장바구니 안에 담고 있습니다."),
     NOT_ADMIN_OR_SELLER_ALLOWED(409, "관리자가 아니거나 적합한 판매자가 아닙니다."),
-    NO_STOCK(409, "해당 상품의 재고가 부족합니다.");
+    NO_STOCK(409, "해당 상품의 재고가 부족합니다."),
+    NOT_EXIST_IMAGE(404,"저장된 이미지가 없습니다.");
 
     private int status;
 

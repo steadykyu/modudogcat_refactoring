@@ -22,7 +22,6 @@ import java.util.List;
 @RequestMapping("/products")
 @RequiredArgsConstructor
 public class ProductController {
-
     private final ProductService productService;
 
     // 임시 상품 등록
@@ -30,11 +29,11 @@ public class ProductController {
     public ResponseEntity postProduct(@RequestPart(name = "post") ProductDto.Post postDto,
                                       @RequestPart(required = false, name = "thumbnailImage") MultipartFile thumbnailImage,
                                       @RequestPart(required = false, name = "productDetailImages") List<MultipartFile> productDetailImages){
-        // fixme: Security 처리를 통한 Id 조회를 Controller에서 할지 Service에서 할지 모르겠네
+
         Long sellerId = productService.findSellerIdByToken();
         postDto.setSellerId(sellerId);
 
-//        System.out.println(productDetailImages.get(0).getSize());
+        System.out.println(productDetailImages.get(0).getSize());
         Long findProductId = productService.postProduct(postDto, thumbnailImage, productDetailImages);
 
         URI location = UriCreator.createUri("/products", findProductId);
