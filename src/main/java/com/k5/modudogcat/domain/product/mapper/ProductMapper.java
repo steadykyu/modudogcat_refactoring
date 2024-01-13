@@ -46,7 +46,7 @@ public interface ProductMapper {
     }
 
     default List<ProductDetailImage> multipartFilesToDetailsImages(List<MultipartFile> productDetailImages){
-        if(productDetailImages == null){
+        if(productDetailImages.get(0).getContentType() == null){
             return null;
         }
         List<ProductDetailImage> productDetailImageList = productDetailImages.stream()
