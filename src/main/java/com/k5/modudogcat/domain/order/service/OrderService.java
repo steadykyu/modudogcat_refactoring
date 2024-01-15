@@ -66,12 +66,11 @@ public class OrderService {
     //==============================
     public Order createOrder(Order order){
         // fixme : (회원이 계속 뒤로가기를 눌러서) 주문이 무한적으로 생성되는것을 막을 방법을 고민해보자. -> redirect
-        int b=10;
-        // OrderProduct에 DB에서 가져온 Product를 넣어준다.
+        // OrderProduct에 DB에서 가져온 영속성 Product 엔티티를 넣어준다.
         List<OrderProduct> orderProducts = order.getOrderProductList().stream()
                 .map(orderProduct -> {
                     Product findProduct = productService.findProduct(orderProduct.getProduct().getProductId());
-                    orderProduct.setProduct(findProduct); // Stream 속에서의 Setter는 의밍벗음
+                    orderProduct.setProduct(findProduct);
                     return orderProduct;
                 })
                 .collect(Collectors.toList());

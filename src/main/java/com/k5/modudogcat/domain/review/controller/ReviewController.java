@@ -1,19 +1,13 @@
 package com.k5.modudogcat.domain.review.controller;
 
 import com.k5.modudogcat.domain.review.dto.ReviewDto;
-import com.k5.modudogcat.domain.review.entity.reviewImage.Image;
-import com.k5.modudogcat.domain.review.entity.Review;
-import com.k5.modudogcat.domain.review.mapper.ReviewMapper;
 import com.k5.modudogcat.domain.review.service.ReviewService;
 import com.k5.modudogcat.security.service.AuthenticationService;
 import com.k5.modudogcat.util.UriCreator;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -27,7 +21,9 @@ import java.util.List;
 public class ReviewController {
     private final ReviewService reviewService;
     private final AuthenticationService authenticationService;
-    // 구매자가 리뷰를 작성할 수 있다.
+    // 구매자는 주문을 통해 주문한 상품의 리뷰를 작성할 수 있다.
+    // todo: 구매자가 해당 상품을 구매한 적이 있는지 확인하는 로직이 필요한가?
+    //  -> 어차피 마이페이지에 등록한 주문에서 리뷰를 등록하므로 구매해서 필요없을듯?
     @PostMapping
     public ResponseEntity postReview(@RequestPart(name = "post") ReviewDto.Post postDto,
                                      @RequestPart(required = false) List<MultipartFile> images

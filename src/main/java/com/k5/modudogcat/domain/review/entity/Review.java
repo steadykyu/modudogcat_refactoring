@@ -2,7 +2,7 @@ package com.k5.modudogcat.domain.review.entity;
 
 import com.k5.modudogcat.audit.Auditable;
 import com.k5.modudogcat.domain.product.entity.Product;
-import com.k5.modudogcat.domain.review.entity.reviewImage.Image;
+import com.k5.modudogcat.domain.review.entity.reviewImage.ReviewImage;
 import com.k5.modudogcat.domain.user.entity.User;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -30,8 +30,7 @@ public class Review extends Auditable {
     @Enumerated(value = EnumType.STRING)
     private ReviewStatus reviewStatus = ReviewStatus.REVIEW_ACTIVE;
     @OneToMany(mappedBy = "review",cascade = CascadeType.ALL)
-    private List<Image> images = new ArrayList<>();
-    // todo: User와 연관관계 매핑
+    private List<ReviewImage> images = new ArrayList<>();
     @ManyToOne
     @JoinColumn(name = "user_id")
     private User user;
@@ -49,11 +48,10 @@ public class Review extends Auditable {
         }
     }
 
-    public void addImage(Image image){
+    public void addImage(ReviewImage image){
         this.images.add(image);
         if(image.getReview() != this){
             image.addReview(this);
         }
-
     }
 }

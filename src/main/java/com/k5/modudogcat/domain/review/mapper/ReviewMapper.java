@@ -1,7 +1,7 @@
 package com.k5.modudogcat.domain.review.mapper;
 
 import com.k5.modudogcat.domain.review.dto.ReviewDto;
-import com.k5.modudogcat.domain.review.entity.reviewImage.Image;
+import com.k5.modudogcat.domain.review.entity.reviewImage.ReviewImage;
 import com.k5.modudogcat.domain.review.entity.Review;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -51,14 +51,14 @@ public interface ReviewMapper {
 
         return response;
     }
-    default List<Image> multipartFilesToImages(List<MultipartFile> multiDto) throws IOException {
-        if(multiDto == null){
+    default List<ReviewImage> multipartFilesToImages(List<MultipartFile> multiDto) throws IOException {
+        if(multiDto.get(0).getContentType() == null){
             return null;
         }
         //given
-        List<Image> images = multiDto.stream()
+        List<ReviewImage> images = multiDto.stream()
                 .map(multipartFile -> {
-                    Image image = new Image();
+                    ReviewImage image = new ReviewImage();
                     try {
                         image.setImage(multipartFile.getBytes());
                         image.setType(multipartFile.getContentType());

@@ -9,12 +9,12 @@ import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
-public class ImageService {
-    private final ImageRepository imageRepository;
+public class ReviewImageService {
+    private final ReviewImageRepository reviewImageRepository;
 
-    public Image findImage(Long imageId){
-        Optional<Image> optionalImage = imageRepository.findById(imageId);
-        Image findImage = optionalImage.orElseThrow(() -> {
+    public ReviewImage findImage(Long imageId){
+        Optional<ReviewImage> optionalImage = reviewImageRepository.findById(imageId);
+        ReviewImage findImage = optionalImage.orElseThrow(() -> {
             throw new BusinessLogicException(ExceptionCode.IMAGE_NOT_FOUND);
         });
         return findImage;

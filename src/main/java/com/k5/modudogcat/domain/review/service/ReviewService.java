@@ -1,7 +1,7 @@
 package com.k5.modudogcat.domain.review.service;
 
 import com.k5.modudogcat.domain.review.dto.ReviewDto;
-import com.k5.modudogcat.domain.review.entity.reviewImage.Image;
+import com.k5.modudogcat.domain.review.entity.reviewImage.ReviewImage;
 import com.k5.modudogcat.domain.review.entity.Review;
 import com.k5.modudogcat.domain.review.mapper.ReviewMapper;
 import com.k5.modudogcat.domain.review.repository.ReviewRepository;
@@ -9,7 +9,6 @@ import com.k5.modudogcat.domain.user.entity.User;
 import com.k5.modudogcat.domain.user.service.UserService;
 import com.k5.modudogcat.exception.BusinessLogicException;
 import com.k5.modudogcat.exception.ExceptionCode;
-import com.k5.modudogcat.security.service.AuthenticationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.*;
@@ -39,8 +38,7 @@ public class ReviewService {
     public Long postReview(ReviewDto.Post postDto, List<MultipartFile> images) throws IOException {
 
         Review review = reviewMapper.reviewPostToReview(postDto);
-        // todo: imageList에 null이 들어가야하는데, proxy 값이 들어가있음 이거 수정필요
-        List<Image> imageList = reviewMapper.multipartFilesToImages(images);
+        List<ReviewImage> imageList = reviewMapper.multipartFilesToImages(images);
         Review findReview = createReview(review, imageList);
         return findReview.getReviewId();
     }
@@ -67,13 +65,11 @@ public class ReviewService {
     //===================================
     // 핵심 비즈니스 로직
     //===================================
-    public Review createReview(Review review, List<Image> images){
-        // todo: 해당 유저의 상품, 리뷰가 존재할 시, 리뷰가 이미 존재하고 있음을 알리자.
-        // todo : 리뷰가 생성되면, 상품에도 리뷰가 추가되어야한다.
-        // refact: 이거 Image 빌때 문제가 생기는듯 연관관계로 인해
+    public Review createReview(Review review, List<ReviewImage> images){
+        // todo: 해당 유저의 상품, 리뷰가 존재할 시, 리뷰가 이미 존재하고 있음을 알리는 기능 필요
         Review saveReviewed = reviewRepository.save(review);
         if(images != null){
-            List<Image> collect = images.stream()
+            List<ReviewImage> collect = images.stream()
                     .map(image -> {
                         saveReviewed.addImage(image);
                         return image;

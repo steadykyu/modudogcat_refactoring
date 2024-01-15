@@ -11,12 +11,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
-public class ImageController {
-    private final ImageService imageService;
+public class ReviewImageController {
+    private final ReviewImageService reviewImageService;
 
     @GetMapping("/reviewImages/{image-id}")
     public ResponseEntity<byte[]> getImage(@PathVariable("image-id") Long imageId){
-        Image image = imageService.findImage(imageId);
+        ReviewImage image = reviewImageService.findImage(imageId);
         byte[] imageByteArray = image.getImage();
         HttpHeaders headers = new HttpHeaders();
         // 각 이미지 타입(jpg, png)에 알맞도록, header에 ContentType입력

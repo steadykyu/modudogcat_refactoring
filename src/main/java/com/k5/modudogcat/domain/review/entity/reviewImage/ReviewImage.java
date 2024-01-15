@@ -9,7 +9,7 @@ import javax.persistence.*;
 @Entity(name = "REVIEW_IMAGE")
 @Setter
 @Getter
-public class Image {
+public class ReviewImage {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long imageId;
