@@ -41,7 +41,6 @@ public class UserController {
     @PatchMapping("/{user-id}")
     public ResponseEntity patchUser(@PathVariable("user-id") Long userId,
                                     @RequestBody UserDto.Patch patchDto){
-        // Note: JWT 토큰의 아이디와 일치하는지 확인하고 수정 가능하도록 구현
         patchDto.setUserId(userId);
         UserDto.Response response = userService.patchUser(patchDto);
         return new ResponseEntity(new SingleResponseDto<>(response), HttpStatus.OK);

@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -37,7 +38,7 @@ public class UserService {
         User postUser = createUser(user); // 비즈니스 로직 함수
         return postUser.getUserId();
     }
-
+    @Transactional
     public UserDto.Response patchUser(UserDto.Patch patchDto){
         User user = mapper.userPatchToUser(patchDto);
         User updateUser = updateUser(user); // 비즈니스 로직 함수
@@ -84,6 +85,7 @@ public class UserService {
         user.setPassword(passwordEncoder.encode(user.getPassword()));
     }
 
+    @Transactional
     public User updateUser(User user){
         Long userId = user.getUserId();
         User findUser = findVerifiedUserById(userId);
@@ -95,7 +97,8 @@ public class UserService {
         Optional.ofNullable(user.getEmail())
                 .ifPresent(newEmail -> findUser.setEmail(newEmail));
 
-        return userRepository.save(findUser);
+//        return userRepository.save(findUser);
+        return findUser;
     }
 
     public User findVerifiedUserById(Long userId){
