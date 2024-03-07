@@ -10,5 +10,5 @@ AWS IAM 계정 생성 : https://www.notion.so/steadykyu/AWS-IAM-MFA-2b4138ce8465
 AWS EC2 : https://www.notion.so/steadykyu/AWS-EC2-Elastic-Computer-Service-57de6ba7c42a4398a10aac0958f576f0
 
 ### AWS S3
-AWS S3 :
+AWS S3 : https://www.notion.so/steadykyu/AWS-S3-f5d4e9440a884a779e25816279b21721
 
