@@ -12,3 +12,6 @@ AWS EC2 : https://www.notion.so/steadykyu/AWS-EC2-Elastic-Computer-Service-57de6
 ### AWS S3
 AWS S3 : https://www.notion.so/steadykyu/AWS-S3-f5d4e9440a884a779e25816279b21721
 
+### AWS RDS
+AWS RDS : https://www.notion.so/steadykyu/AWS-RDS-1e0d37e0dee14c1db485925d5b6265c9
+
