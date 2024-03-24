@@ -53,7 +53,7 @@ public class Seller extends Auditable {
     @Column(nullable = false)
     private String bankName;
 
-    @OneToOne(mappedBy = "seller", cascade = CascadeType.PERSIST)
+    @OneToOne(mappedBy = "seller", cascade = CascadeType.PERSIST, fetch = FetchType.LAZY)
     private User user;
 
     @OneToMany(mappedBy = "seller", cascade = {CascadeType.PERSIST, CascadeType.REMOVE})

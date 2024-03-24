@@ -4,12 +4,12 @@ spring:
     database: mysql
     database-platform: org.hibernate.dialect.MySQL5InnoDBDialect
     hibernate:
-      ddl-auto: create
+      ddl-auto: update
     properties:
       hibernate:
         highlight_sql: true
         format_sql: true
-        show_sql: true
+        #show_sql: true
       dialect: org.hibernate.dialect.MySQL5InnoDBDialect
   datasource:
     url: jdbc:mysql://localhost:3306/modudogcat?serverTimezone=Asia/Seoul
@@ -38,13 +38,9 @@ spring:
 logging:
   level:
     org:
-      springframework:
-        orm:
-          jpa: DEBUG
       hibernate:
-        type:
-          descriptor:
-            sql: trace
+        SQL: DEBUG
+        type: DEBUG
 server:
   servlet:
     encoding:

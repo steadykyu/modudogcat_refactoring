@@ -37,7 +37,7 @@ public class Product extends Auditable {
     private ProductStatus productStatus = ProductStatus.PRODUCT_ACTIVE;
     @OneToMany(mappedBy = "product", cascade = {CascadeType.PERSIST, CascadeType.REMOVE})
     private List<OrderProduct> orderProductList = new ArrayList<>();
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "seller_id")
     private Seller seller;
     public enum ProductStatus {
