@@ -26,7 +26,7 @@ public interface ProductMapper {
 
         List<ProductDto.Response> list = new ArrayList<ProductDto.Response>( products.size() );
         for ( Product product : products ) {
-            list.add( productToResponse( product, domain ) );
+            list.add( productToResponse( product, domain , true) );
         }
 
         return list;
@@ -65,6 +65,30 @@ public interface ProductMapper {
         return productDetailImageList;
     }
 
+    static ProductDto.Response productToResponse(Product product, String domain, boolean isFindAll){
+        if(product == null){
+            return null;
+        }
+        ProductDto.Response response = new ProductDto.Response();
+        // 썸네일 사진 요청 링크
+        String thumbnailLink;
+        if(product.getThumbnailImage() == null){
+            thumbnailLink = null;
+        }else{
+            thumbnailLink = domain +"/thumbnails/"+ product.getProductId();
+        }
+
+        response.setProductId( product.getProductId() );
+        response.setName( product.getName() );
+        response.setThumbnailLink( thumbnailLink );
+        response.setProductDetail(product.getProductDetail() );
+        response.setPrice( product.getPrice() );
+        response.setStock( product.getStock() );
+        response.setProductStatus( product.getProductStatus() );
+
+        return response;
+    }
+
     static ProductDto.Response productToResponse(Product product, String domain){
         if(product == null){
             return null;
@@ -79,7 +103,10 @@ public interface ProductMapper {
         }
 
         // 상품 세부페이지 사진 요청 링크
-        List<String> productDetailLinks = product.getProductDetailImages().stream()
+        List<String> productDetailLinks = new ArrayList<>();
+        if(product.getProductDetailImages() ==null) productDetailLinks=null;
+
+        productDetailLinks = product.getProductDetailImages().stream()
                 .map(image -> {
                     String link = domain + "/productDetailImages/" + image.getDetailImageId();
                     return link;

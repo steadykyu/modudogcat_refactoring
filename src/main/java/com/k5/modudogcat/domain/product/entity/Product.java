@@ -27,7 +27,7 @@ public class Product extends Auditable {
     @Lob
     private byte[] thumbnailImage;
     private String thumbnailImageType;
-    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "product", fetch = FetchType.LAZY)
     private List<ProductDetailImage> productDetailImages = new ArrayList<>();
     @Lob
     private String productDetail;
