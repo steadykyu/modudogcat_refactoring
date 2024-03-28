@@ -25,8 +25,7 @@ public interface UserMapper {
         user.setEmail( postDto.getEmail() );
         user.setAddress( postDto.getAddress() );
 
-        cart.setUser(user);
-        user.setCart(cart);
+        user.addCart(cart);
 
         return user;
     }

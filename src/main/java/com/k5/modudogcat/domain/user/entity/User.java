@@ -45,8 +45,8 @@ public class User extends Auditable {
     @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.PERSIST)
     @JoinColumn(name = "admin_id")
     private Admin admin;
-    @OneToOne(fetch = FetchType.LAZY, mappedBy = "user", cascade = {CascadeType.PERSIST, CascadeType.REMOVE})
-    private Cart cart;
+    @OneToMany(fetch = FetchType.LAZY, mappedBy = "user", cascade = {CascadeType.PERSIST, CascadeType.REMOVE})
+    private List<Cart> cart;
     
     public enum UserStatus {
         USER_ACTIVE("활동중"),
@@ -74,7 +74,7 @@ public class User extends Auditable {
      * 연관관계 편의 메서드
      */
     public void addCart(Cart cart){
-        this.cart = cart;
+        this.cart.add(cart);
         cart.setUser(this);
     }
 
