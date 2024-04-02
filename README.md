@@ -1,134 +1,81 @@
-<div>
+## ModudogCat - 애완용품 커머스 서비스 프로젝트
 
-# `반려동물 쇼핑몰 모두댕냥 🐈`
+### Demo Link
++ https://bit.ly/4cEmNer
 
-<img width="700" alt="스크린샷 2023-04-02 오후 3 22 58" src="https://user-images.githubusercontent.com/96058996/229336216-bd5034c4-41f1-4e09-8b7e-aeb3430add5c.png">
+### 제작 기간 & 참여 인원
++ 프론트 엔드 : 3명 
++ 백엔드 : 1명
 
-<br/>
-<br/>
+### 사용한 기술(기술 스택)
++ Java, Spring Boot, Spring Data JPA, Spring Security
++ H2, MYSQL
++ AWS Route 64, AWS EC2, AWS RDS, React
 
-**`Team` :** K5 </br></br>
-**`Project Name` :** 모두댕냥 </br></br>
-**`Project Period` :** 2023.03.03 - 2023.04.02 </br></br>
-**`Link` :** [ 모두댕냥 ](http://modudogcat.shop) </br></br>
-**`Notion` :** [ Team_K5 ](https://www.notion.so/codestates/K5-3872a86873cd42a58abf07bd4e28a2ee) </br></br>
-**`ERD` :** [ ERD ](https://cdn.discordapp.com/attachments/1080759375360172065/1092002729599180860/image.png) </br></br>
+### ERD
+<details>
+  <summary>ERD 그림</summary>
+  <p>
+    <img src="https://github.com/steadykyu/modudogcat_refactoring/blob/main/sampleImage/ERD.png" alt="AWS 아키텍처">
+  </p>
+</details>
 
-<br/>
-<br/>
+### 핵심 기능
+(1) CSR 아키텍처를 채택하여 RESTful API 호출을 통해 통신하는 쇼핑몰 백엔드 서비스를 설계 및 구현 </br>
+(2) Spring JPA를 이용한 WAS 개발 및 쿼리 성능 최적화
+<details>
+  <summary>(3) AWS S3, EC2, RDS를 이용한 3-tier Architecture 기반의 서비스 구현</summary>
+  <p>
+    <img src="https://github.com/steadykyu/modudogcat_refactoring/blob/main/sampleImage/aws_architecture.png" alt="AWS 아키텍처">
+  </p>
+</details>
+(4) Spring Security를 이용한 로그인 기능 개발
 
-## 🐶 테스트 계정 🐶
+### 트러블 슈팅 경험
+**(1) 중요 트러블 슈팅** </br>
 
-|  타입  | 이메일 |  비밀번호   |
-| :----: | :----: | :---------: |
-| `구매자` | buyer  | buyer1234!  |
-| `판매자` | seller | seller1234! |
-| `관리자` | admin  | admin1234!  |
+**(2) 그 외 트러블 슈팅** </br>
 
-<br/>
-<br/>
+### 회고/피드백
+**만족한점** </br>
+<details>
+  <summary>1. APP 개발 과정 중 발생한 트러블 슈팅 과제들을 해결하여 최종적으로 동작하는 서비스를 개발했다.</summary>
+  <p>
+    위에 작성한 트러블 슈팅들을 해결하며 최종적으로 쇼핑몰 서비스를 제공하는 웹 사이트를 개발해볼 수 있어서 좋았다.
+  </p>
+</details>
+<details>
+  <summary>2. 프론트 분들과 소통하며 API 통신을 기반으로 동작하는 SPA 를 개발하고, 이 과정에서 프론트 지식을 배울 수 있었다.</summary>
+  <p>
+    프론트엔드 쪽과 통신하면서 서로 간 알고 있는 부분이 달라 대화가 잘 되지 않는 것을 발견 할수 있었습니다. 예를 들어 어떤 형식으로 보내줘야만 프론트쪽에서 편하게 데이터를 이용할 수 있는지, 통신과정에서 에러가 발생했는데 누구의 에러인지 모르는 등과 같은 이슈가 발생했었습니다. </br>
+    이 과정들을 해결하기 위해 점심시간마다 정기적인 회의를 가지고, 각자의 문제를 공유하거나 기능들이 어떻게 동작해주는지 설명해주는 시간을 가졌습니다.
 
-## 🐰 TechStack 🐰
-</br>
+    이를 통해 Json 을 보내주면 프론트 쪽에서 객체로 바꾸어 페이지의 여러곳에서 사용한다는 점이나 웹과 WAS의 전체적인 아키텍처가 어떻게 동작하는지를 이해할 수 있었습니다.
+  </p>
+</details>
 
-### 🖥️ FRONTEND
+**아쉬운점** </br>
+<details>
+  <summary> 1. 팀원들의 실력을 고려한 프로젝트를 기획 및 설계하지 못했다.</summary>
+  <p>
+    데이터베이스 설계나 네트워크, 디자인 패턴등 cs지식이 부족한 과정에서 기획과 설계를 진행하다보니 해답이 나오지 않는 부분에 시간을 너무 많이 허비했습니다. 팀원들 모두 완전한 지식을 가지고 있지 않았으므로, 일단은 아는 지식으로 개발 할 수 있는 정도의 APP을 개발 해두고, 하나하나 추가하거나 리팩토링 하는 방식으로 개발했어야 한다고 생각이 듭니다.
+    
+    예를 들어 ERD를 설계할 때 구매자, 판매자, 관리자를 어떻게 설계할 것인가로 이야기를 나누었는데, DB 설계 지식이 부족했다보니 무엇이 좋은 ERD 인가 고민하며 시간을 많이 허비했습니다. 간단하게 모두 도메인으로 만들어두고 기능을 개발하며 하나하나 필요하거나 새로운 기술들을 좀 더 적용해보면 개발 기간동안에 더 많은 것들을 할 수 있지 않았나 생각이 듭니다.
+    
+  </p>
+</details>
+<details>
+  <summary> 2. 디테일한, 보기좋은 user or business sequence flow를 만들지 못한 부분</summary>
+  <p>
+    디테일하고 프론트, 백 양쪽이 이해할 수 있는 user sequence flow를 만들지 못하다보니, 이후 개발 과정에서 로직 중간과정은 어떻게 진행되는가를 물어보는 과정이 자주 일어났던것 같습니다. 차라리 처음에 flow를 그림으로 확고하게 그려놓고 부연설명을 붙여 놓은 후 조금조금씩 수정했다면 시간을 많이 절약할 수 있었을 것이라고 생각됩니다.
+  </p>
+</details>
+</details>
+<details>
+  <summary> 3. 트러블 슈팅을 기록하고, 좀 더 깊은 고민을 해보지 않은 점</summary>
+  <p>
+    문제가 발생했다고 그냥 검색해서 해결하기 보다는 트러블 슈팅을 이슈 발견 - 원인 분석 - 해결방안(여러개) - 방안 후 결과 와 같이 단계적으로 깊게 고민하고 기록해두었으면 좋지 않았을까 생각됩니다. 문제가 발생했다고 웹에존재하는 해결방안으로 그냥 해결해버리면 해당 문제해결 과정을 깊게 이해하지도 못할 뿐만아니라 프로젝트가 끝난 후, 트러블 슈팅을 다시 정리하려니 기억이 디테일 하게 나지 않았습니다. (그리고 무엇보다 다시 문제를 찾고 과정을 작성하려면 귀찮았습니다.)
+  </p>
+</details>
 
-<img width="700" alt="스크린샷 2023-04-02 오후 3 29 19" src="https://user-images.githubusercontent.com/96058996/229336460-4520ae6b-7ddf-4b42-a250-68dc6e0783c9.png">
 
-<br/>
-
-### 💾 BACKEND
-
-<img width="700" alt="스크린샷 2023-04-02 오후 3 29 09" src="https://user-images.githubusercontent.com/96058996/229337106-68ffc818-0075-410c-bcb1-8b2ff6e9a58d.png">
-
-<br/>
-
-### 🔧 DEPLOY
-
-<img width="700" alt="스크린샷 2023-04-02 오후 3 29 30" src="https://user-images.githubusercontent.com/96058996/229337142-349a6bf1-c301-4ecf-b640-9ea5cdb7be52.png">
-
-<br/>
-<br/>
-
-## 🧑🏻‍💻 Team 👩🏻‍💻
-
-|                                                                     <a href="https://github.com/Ktuna95" target="_blank">김동원</a><br>(FE, 부팀장)                                                                     |                                         <a href="https://github.com/Min-hh-k" target="_blank">김민혁</a><br>(FE, 팀원)                                         |                                                                                             <a href="https://github.com/wlgus3" target="_blank">김지현</a><br>(FE, 팀원)                                                                                             |
-| :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :-----------------------------------------------------------------------------------------------------------------------------------------------------------: | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-|                             <img width="180" height="190" alt="김동원" src="https://user-images.githubusercontent.com/96058996/229338754-ca225e45-9bfe-484c-a882-a299a9d0fe40.png">                              | <img width="180" height="190" alt="김민혁" src="https://user-images.githubusercontent.com/96058996/229338259-a1d9d466-20a9-4f1c-88ab-83b351742210.png"> |                                                      <img width="180" height="190" alt="김지현" src="https://user-images.githubusercontent.com/96058996/229338652-a90a9e0e-8a11-4af7-a03c-78e065be2ba0.png">                                                       |
-| </br>메인 페이지</br>샵 페이지</br>어바웃 페이지</br>장바구니 페이지</br>`후기 CRUD`</br>반응형 적용</br>Redux</br> | </br>회원가입(유효성 검사⇩)</br>판매자 회원가입</br>로그인 & 로그아웃</br>헤더 & 푸터</br>`장바구니 CRUD`</br>상품 주문</br>반응형 적용</br>Redux-Persist</br> | </br>구매자 마이페이지</br>판매자 마이페이지</br>관리자 마이페이지</br>`마이페이지 CRUD`</br>상품 & 리뷰 등록</br>애니메이션 & 탑 버튼</br>반응형 적용</br>Redux 셋팅</br> |
-
-|                                        <a href="https://github.com/ryehwa" target="_blank">김례화</a><br>(BE, 팀장)                                        |                                       <a href="https://github.com/steadykyu" target="_blank">김규하</a><br>(BE, 팀원)                                        |     
-| :---------------------------------------------------------------------------------------------------------------------------------------------------------: | :---------------------------------------------------------------------------------------------------------------------------------------------------------: |
-| <img width="180" height="200" alt="김례화" src="https://user-images.githubusercontent.com/96058996/229338812-8c8d8e75-2cb0-418f-8abb-36e77735006a.png"> | <img width="180" height="200" alt="김규하" src="https://user-images.githubusercontent.com/96058996/229338820-b0c2ddcd-8071-469c-8cda-245e0db95775.png"> |     |
-|      </br>`서버 & 배포환경 구축`</br> Git Action </br> S3 & EC2 & RDS </br> Route53</br>------------</br></br>`백오피스`</br></br>`관리자`</br>판매자 회원가입 승인&거절</br>후기삭제</br>상품 삭제</br></br>`판매자`</br>판매자 회원가입 & 정보관리</br>상품 등록 & 관리</br>주문관리</br>Q&A 답변 </br>매출 관리</br>     |     </br>`로그인 & 관리`</br>AUTHENTICATION</br>AUTHORIZATION</br>JWT</br> 인증 및 인가 관련 Exception </br>`구매자`</br>회원(구매자) CRUD 및 연관관계 매핑 </br> `상품(Order)` </br> 상품 CRUD 및 연관관계 매핑 </br> 상품 이미지 전송 및 저장 </br> `주문(Order)` </br> 주문 CRUD 및 연관관계 매핑</br>`후기(review)` </br> 후기 CRUD 및 연관관계 매핑 </br> 후기 이미지 전송 및 저장                                 |
-
-<br/>
-<br/>
-
-## ✉️ Commit Message ✉️
-
-| Message  | 설명                                               |
-| :------: | :------------------------------------------------- |
-|   `feat`   | 새로운 기능 추가                          |
-|   `fix`    | 버그 수정                                          |
-|   `docs`   | 문서 추가 수정                                          |
-|   `test`   | 테스트 코드, 리팩토링 테스트 코드 추가             |
-|  `chore`   | 	빌드 업무 추가 및 수정, 패키지 매니저 수정                 |
-|  `refactor` | 코드 리팩토링       |
-|  `style`   | 	코드 포맷팅, 세미콜론 누락, 코드 변경이 없는 경우  |
-
-<br/>
-<br/>
-
-## 💡 Front Code Convention 
-<br/>
-
-🫧 `변수명, 함수명` = camelCase
-<br/>
-<br/>
-🫧 `주석` : 헷갈리지 않게 + 설명
-<br/>
-<br/>
-
-🫧`함수/컴포넌트`
-
-1. `함수/변수명 선언` : lowerCamelCase
-2. `리액트 컴포넌트 선언` : UpperCamelCase
-3. `indent` : 2 space
-
-<br/>
-
-🫧 `스택`
-
-1. `상태관리` : redux-toolkit
-2. `CSS 스타일링` : styled-components, Bootstrap
-3. `Asset명 표기법`  = 파일형식
-4. `HTTP 통신방식` : axios 사용
-<br/>
-<br/>
-
-## 💡 Back Code Convention
-
-<br/>
-
-🫧 `변수명, 함수명` = camelCase
-<br/>
-<br/>
-
-🫧 `상수` = UPPER_SNAKE_CASE
-<br/>
-<br/>
-
-🫧 `클래스명` = PascalCase
-<br/>
-<br/>
-
-🫧 `메서드명`
-
-|  | POST | PATCH | GET | DELETE |
-| --- | --- | --- | --- | --- |
-| Controller | post | patch | get | delete |
-| Service, Repository | create | sellerDto | find | remove |
-<br/>
-
-🫧 `필드 id명` = 객체Id
