@@ -21,15 +21,37 @@
 </details>
 
 ### 핵심 기능
-(1) CSR 아키텍처를 채택하여 RESTful API 호출을 통해 통신하는 쇼핑몰 백엔드 서비스를 설계 및 구현 </br>
-(2) Spring JPA를 이용한 WAS 개발 및 쿼리 성능 최적화
+<details>
+  <summary>(1) CSR 아키텍처를 채택하여 RESTful API 호출을 통해 통신하는 쇼핑몰 백엔드 서비스를 설계 및 구현</summary>
+  <p> 
+    <img src="https://github.com/steadykyu/modudogcat_refactoring/blob/main/sampleImage/studySample/csr.png" alt="CSR 아키텍처">
+  </p>
+  <p>
+    대부분의 도메인들은 RESTful 설계에 따라 <a href = "https://github.com/steadykyu/modudogcat_refactoring/blob/1ef06b737589db917ec4ff77ddb10bbda566d15d/src/main/java/com/k5/modudogcat/domain/product/controller/ProductController.java#L28-L65">
+    Product Controller</a> 의 URL 형식에 맞추어 CRUD의 구현을 나타냅니다.
+  </p>
+  <p>
+    다만 회원 도메인의 경우 로그인시 JWT 토큰을 이용해 개별 회원 리소스를 유추해낼 수 있고 회원의 PK를 보여주지 않는게 보안적으로 좋다고 생각했습니다. 그러므로 <a href = "https://github.com/steadykyu/modudogcat_refactoring/blob/1ef06b737589db917ec4ff77ddb10bbda566d15d/src/main/java/com/k5/modudogcat/domain/user/controller/UserController.java#L32-L75">
+    회원 Controller</a> 의 URL로 CRUD를 구현했습니다.
+  </p>
+</details>
+<details> 
+  <summary>(2) Spring JPA를 이용한 WAS 개발 및 쿼리 성능 최적화</summary>
+  <p>
+   
+  </p>
+</details>
 <details>
   <summary>(3) AWS S3, EC2, RDS를 이용한 3-tier Architecture 기반의 서비스 구현</summary>
   <p>
-    <img src="https://github.com/steadykyu/modudogcat_refactoring/blob/main/sampleImage/aws_architecture.png" alt="AWS 아키텍처">
+    <img src="https://github.com/steadykyu/modudogcat_refactoring/blob/main/sampleImage/studySample/aws_architecture.png" alt="AWS 아키텍처">
   </p>
 </details>
-(4) Spring Security를 이용한 로그인 기능 개발
+<details>
+  <summary>(4) Spring Security를 이용한 로그인 기능 개발</summary>
+
+</details>
+
 
 ### 트러블 슈팅 경험
 **(1) 중요 트러블 슈팅** </br>
