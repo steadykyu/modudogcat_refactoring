@@ -1,8 +1,6 @@
 package com.k5.modudogcat.domain.user.service;
 
 import com.k5.modudogcat.domain.admin.entity.Admin;
-import com.k5.modudogcat.domain.admin.repository.AdminRepository;
-import com.k5.modudogcat.domain.cart.entity.Cart;
 import com.k5.modudogcat.domain.user.Mapper.UserMapper;
 import com.k5.modudogcat.domain.user.dto.UserDto;
 import com.k5.modudogcat.domain.user.repository.UserRepository;
@@ -70,7 +68,7 @@ public class UserService {
         setEncodedPassword(user);
         setDefaultRole(user);
         User verifiedUser = verifiedAdmin(user);
-        makeCart(verifiedUser);
+        initializeCart(verifiedUser);
 
         return userRepository.save(verifiedUser);
     }
@@ -174,12 +172,11 @@ public class UserService {
         return findUser;
     }
 
-    private void makeCart(User user){
+    private void initializeCart(User user){
         if(user.getRoles().contains("SELLER") || user.getRoles().contains("ADMIN")){
             user.setCart(null);
             return;
         }
-        user.addCart(new Cart());
     }
 
     public void verifiedAdminRole(User findUser) {

@@ -29,7 +29,7 @@ public class UserController {
     private final UserService userService;
     private final CustomAuthorityUtils customAuthorityUtils;
 
-    @PostMapping("/sign-up")
+    @PostMapping
     public ResponseEntity postUser(@Valid @RequestBody UserDto.Post postDto){
 
         Long userId = userService.postUser(postDto);

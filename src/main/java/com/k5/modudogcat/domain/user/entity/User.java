@@ -46,7 +46,7 @@ public class User extends Auditable {
     @JoinColumn(name = "admin_id")
     private Admin admin;
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "user", cascade = {CascadeType.PERSIST, CascadeType.REMOVE})
-    private List<Cart> cart;
+    private List<Cart> cart = new ArrayList<>();
     
     public enum UserStatus {
         USER_ACTIVE("활동중"),

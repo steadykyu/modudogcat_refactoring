@@ -41,9 +41,6 @@ public class ProductController {
         return ResponseEntity.created(location)
                 .body("ProductImage uploaded successfully");
     }
-    // todo: 상품 수정 핸들러 메서드 -> 프론트쪽 구현이 안돼있음.
-
-    // todo: 판매자
     @GetMapping("/{product-id}")
     public ResponseEntity getProduct(@PathVariable("product-id") Long productId){
         ProductDto.Response response = productService.getProduct(productId);
