@@ -81,6 +81,7 @@ public class ProductService {
                     .collect(Collectors.toList());
         }
 
+        int k = 0;
         Product savedProduct = productRepository.save(product);
 
         return savedProduct;

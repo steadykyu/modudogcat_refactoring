@@ -35,7 +35,7 @@ public class User extends Auditable {
     private String address;
     @Enumerated(value = EnumType.STRING)
     private UserStatus userStatus = UserStatus.USER_ACTIVE;
-    @ElementCollection(fetch = FetchType.LAZY) // 로그인을 위해 Eager
+    @ElementCollection(fetch = FetchType.LAZY)
     private List<String> roles = new ArrayList<>();
     @OneToMany(mappedBy = "user", cascade = CascadeType.REMOVE)
     private List<Order> orderList;
