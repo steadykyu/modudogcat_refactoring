@@ -125,8 +125,7 @@ public class CartService {
                 });
     }
 
-    public void removeCartProductsByCartId(Long userId){
-        Long cartId = findVerifiedCartByUserId(userId).getCartId();
+    public void removeCartProductsByCartId(Long cartId){
         cartProductRepository.deleteAllByCartCartId(cartId);
     }
 }

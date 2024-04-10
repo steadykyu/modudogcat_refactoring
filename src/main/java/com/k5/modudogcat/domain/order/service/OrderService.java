@@ -10,6 +10,8 @@ import com.k5.modudogcat.domain.order.repository.OrderRepository;
 import com.k5.modudogcat.domain.product.entity.Product;
 import com.k5.modudogcat.domain.product.repository.ProductRepository;
 import com.k5.modudogcat.domain.product.service.ProductService;
+import com.k5.modudogcat.domain.user.entity.User;
+import com.k5.modudogcat.domain.user.service.UserService;
 import com.k5.modudogcat.exception.BusinessLogicException;
 import com.k5.modudogcat.exception.ExceptionCode;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +29,7 @@ import java.util.stream.Collectors;
 public class OrderService {
     private final OrderRepository orderRepository;
     private final ProductService productService;
+    private final UserService userService;
     private final CartService cartService;
     private final OrderMapper mapper;
     @Value("${config.domain}")
@@ -65,8 +68,14 @@ public class OrderService {
     //            핵심 비즈니스 로직
     //==============================
     public Order createOrder(Order order){
+        // 영속성 회원 엔티티 넣어주기
+        User findUser = userService.findVerifiedUserIncludeCart(order.getUser().getUserId());
+        order.setUserAddOrder(findUser);
+        // 장바구니 비워주기
+        emptyCart(findUser.getCart());
+
         // fixme : (회원이 계속 뒤로가기를 눌러서) 주문이 무한적으로 생성되는것을 막을 방법을 고민해보자. -> redirect
-        // OrderProduct에 DB에서 가져온 영속성 Product 엔티티를 넣어준다.
+        // DB에서 가져온 영속성 Product 엔티티를 OrderProduct에 넣어 DB 엔티티에 연관관계를 맺어준다.
         List<OrderProduct> orderProducts = order.getOrderProductList().stream()
                 .map(orderProduct -> {
                     Product findProduct = productService.findProduct(orderProduct.getProduct().getProductId());
@@ -74,11 +83,11 @@ public class OrderService {
                     return orderProduct;
                 })
                 .collect(Collectors.toList());
+        // 영속성 엔티티가 된 OrderProduct를 Order에 넣어준다.
         order.setOrderProductList(orderProducts);
 
         stockMinusCount(order);
         Order savedOrder = orderRepository.save(order);
-        emptyCart(savedOrder.getUser().getUserId());
         return savedOrder;
     }
     private void stockMinusCount(Order order) {
@@ -156,7 +165,9 @@ public class OrderService {
         }
     }
 
-    private void emptyCart(Long userId){
-        cartService.removeCartProductsByCartId(userId);
+    private void emptyCart(List<Cart> carts){
+        for(Cart cart : carts){
+            cartService.removeCartProductsByCartId(cart.getCartId());
+        }
     }
 }

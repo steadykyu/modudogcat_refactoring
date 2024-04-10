@@ -66,7 +66,7 @@ public interface ProductMapper {
     }
 
     static ProductDto.Response productToResponse(Product product, String domain, boolean isFindAll){
-        if(product == null){
+        if(product == null || isFindAll==false){
             return null;
         }
         ProductDto.Response response = new ProductDto.Response();

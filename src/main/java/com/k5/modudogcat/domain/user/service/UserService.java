@@ -108,7 +108,15 @@ public class UserService {
         verifiedActiveUser(findUser);
         return findUser;
     }
+    public User findVerifiedUserIncludeCart(Long userId){
+        User findUser = userRepository.findByIdIncludeCart(userId)
+                .orElseThrow(() -> {
+                    throw new BusinessLogicException(ExceptionCode.USER_NOT_FOUND);
+                });
 
+        verifiedActiveUser(findUser);
+        return findUser;
+    }
     public User findVerifiedUserByLoginId(String loginId){
         User findUser = userRepository.findByLoginId(loginId)
                 .orElseThrow(() -> {
@@ -145,7 +153,7 @@ public class UserService {
         userRepository.save(findUser);
     }
     private void verifiedByEmail(User user) {
-        // 로그인 ID가 존재하는지 검증하는 메서드
+        // 중복 이메일을 검증하는 메서드
         String email = user.getEmail();
         Optional<User> optionalUser = userRepository.findByEmail(email);
         optionalUser.ifPresent(s -> {

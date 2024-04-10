@@ -3,17 +3,19 @@ package com.k5.modudogcat.domain.cart.entity;
 import com.k5.modudogcat.domain.product.entity.Product;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.BatchSize;
 
 import javax.persistence.*;
 
 @Entity
+@BatchSize(size = 100)
 @Getter
 @Setter
 public class CartProduct {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long cartProductId;
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "cart_id")
     private Cart cart;
     @ManyToOne

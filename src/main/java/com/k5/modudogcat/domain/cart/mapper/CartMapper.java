@@ -19,7 +19,7 @@ public interface CartMapper {
         List<CartProductDto.Response> cartProductDtoList = cartProductList.stream()
                 .map(cartProduct -> {
                     CartProductDto.Response cpResponse = new CartProductDto.Response();
-                    ProductDto.Response productResponse = ProductMapper.productToResponse(cartProduct.getProduct(), domain);
+                    ProductDto.Response productResponse = ProductMapper.productToResponse(cartProduct.getProduct(), domain, true);
                     Integer productsCount = cartProduct.getProductCount();
 
                     cpResponse.setProductResponse(productResponse);
