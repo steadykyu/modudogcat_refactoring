@@ -44,4 +44,9 @@ public class OrderProduct extends Auditable {
             this.status = status;
         }
     }
+
+    public void setOrderAddOrderProduct(Order order){
+        this.order = order;
+        order.getOrderProductList().add(this);
+    }
 }

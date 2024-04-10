@@ -44,19 +44,22 @@ public interface OrderMapper {
         order.setPhone( postDto.getPhone() );
         order.setReceivingAddress( postDto.getReceivingAddress() );
         order.setTotalPrice( postDto.getTotalPrice() );
-
+        // DTO에서 OrderProduct 값 넣기
         List<OrderProduct> orderProducts = postDto.getOrderProductDtos().stream()
                 .map(orderProductDto -> {
                     OrderProduct orderProduct = new OrderProduct();
-                    orderProduct.setOrder(order);
                     Product fkProduct = new Product();
                     fkProduct.setProductId(orderProductDto.getProductId());
                     orderProduct.setProduct(fkProduct);
                     orderProduct.setProductCount(orderProductDto.getProductCount());
+                    // 편의메서드 - 양방향 연관관계
+                    orderProduct.setOrderAddOrderProduct(order);
                     return orderProduct;
                 }).collect(Collectors.toList());
+
+        // Order에 주입
         order.setUser(fkUser);
-        order.setOrderProductList(orderProducts);
+//        order.setOrderProductList(orderProducts);
         return order;
     }
 

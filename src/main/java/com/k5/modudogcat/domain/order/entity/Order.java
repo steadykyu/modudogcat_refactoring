@@ -21,7 +21,6 @@ public class Order extends Auditable {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long orderId;
-    // todo: seller와 연관관계 매핑
     @ManyToOne
     @JoinColumn(name = "user_id")
     private User user;
@@ -36,7 +35,7 @@ public class Order extends Auditable {
     private PayMethod payMethod = PayMethod.NO_BANK_BOOK;
     @Enumerated(value = EnumType.STRING)
     private OrderStatus orderStatus = OrderStatus.ORDER_ACTIVE;
-    @OneToMany(mappedBy = "order", cascade = {CascadeType.PERSIST, CascadeType.REMOVE})
+    @OneToMany(mappedBy = "order", cascade = {CascadeType.PERSIST, CascadeType.REMOVE}, orphanRemoval = true)
     private List<OrderProduct> orderProductList = new ArrayList<>();
 
     public enum PayMethod{
@@ -56,5 +55,13 @@ public class Order extends Auditable {
         OrderStatus(String status){
             this.status = status;
         }
+    }
+
+    /**
+     * 연관관계 편의 메서드
+     */
+    public void setUserAddOrder(User user){
+        this.user = user;
+        user.getOrderList().add(this);
     }
 }
