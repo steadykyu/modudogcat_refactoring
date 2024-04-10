@@ -14,7 +14,8 @@ import javax.persistence.*;
 import java.util.ArrayList;
 import java.util.List;
 
-@Entity(name = "user_table")
+@Entity
+@Table(name = "user_table")
 @AllArgsConstructor
 @NoArgsConstructor
 @Setter
