@@ -8,7 +8,6 @@ import org.hibernate.annotations.BatchSize;
 import javax.persistence.*;
 
 @Entity
-@BatchSize(size = 100)
 @Getter
 @Setter
 public class CartProduct {

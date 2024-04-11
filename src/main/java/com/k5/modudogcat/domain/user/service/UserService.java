@@ -109,7 +109,7 @@ public class UserService {
         return findUser;
     }
     public User findVerifiedUserIncludeCart(Long userId){
-        User findUser = userRepository.findByIdIncludeCart(userId)
+        User findUser = userRepository.findUserIncludeCartById(userId)
                 .orElseThrow(() -> {
                     throw new BusinessLogicException(ExceptionCode.USER_NOT_FOUND);
                 });
