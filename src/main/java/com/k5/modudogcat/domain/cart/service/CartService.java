@@ -130,6 +130,7 @@ public class CartService {
         List<Long> cartIds = carts.stream()
                 .map(cart -> cart.getCartId())
                 .collect(Collectors.toList());
-        cartProductRepository.deleteAllByCartCartIdIn(cartIds);
+//        cartProductRepository.deleteAllByCartCartIdIn(cartIds);
+        cartProductRepository.deleteAllByCartIds(cartIds);
     }
 }

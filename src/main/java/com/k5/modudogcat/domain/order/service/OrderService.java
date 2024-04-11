@@ -73,8 +73,8 @@ public class OrderService {
         // 영속성 회원 엔티티 넣어주기
         User findUser = userService.findVerifiedUserIncludeCart(order.getUser().getUserId());
         order.setUserAddOrder(findUser);
-        // 장바구니 비워주기
-        emptyCart(findUser.getCart());
+        // 장바구니들 속 세부상품 비워주기
+        cartService.removeCartProductsByCarts(findUser.getCart());
 
         // 주문 상품 생성을 위한 상품 조회
         List<Long> productIds = order.getOrderProductList().stream()
@@ -169,9 +169,5 @@ public class OrderService {
         if(LoginUserId != dbUserId){
             throw new BusinessLogicException(ExceptionCode.NOT_ALLOWED_USER);
         }
-    }
-
-    private void emptyCart(List<Cart> carts){
-            cartService.removeCartProductsByCarts(carts);
     }
 }
