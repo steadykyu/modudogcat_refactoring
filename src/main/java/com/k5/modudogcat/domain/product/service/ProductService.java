@@ -107,6 +107,11 @@ public class ProductService {
     // todo: 판매자Id를 통해 해당 판매자가 가진 Product만 가져오도록 하는 로직
     // + 삭제된 상품 및 활성화된 상품등 동적 쿼리를 해볼 수 있을듯
 
+    public List<Product> findProductsIds(List<Long> productIds){
+        List<Product> productsByIdIn = productRepository.findProductsByProductIdIn(productIds);
+        return productsByIdIn;
+    }
+
     @Transactional
     // 상품은 상품을 올린 판매자 이거나, 관리자 일 경우만 삭제가 가능하다.
     public void removeProduct(Long productId){

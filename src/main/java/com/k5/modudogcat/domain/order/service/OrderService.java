@@ -20,7 +20,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -66,6 +68,7 @@ public class OrderService {
     //==============================
     //            핵심 비즈니스 로직
     //==============================
+    // fixme : (회원이 계속 뒤로가기를 눌러서) 주문이 무한적으로 생성되는것을 막을 방법을 고민해보자. -> redirect
     public Order createOrder(Order order){
         // 영속성 회원 엔티티 넣어주기
         User findUser = userService.findVerifiedUserIncludeCart(order.getUser().getUserId());
@@ -73,17 +76,21 @@ public class OrderService {
         // 장바구니 비워주기
         emptyCart(findUser.getCart());
 
-        // fixme : (회원이 계속 뒤로가기를 눌러서) 주문이 무한적으로 생성되는것을 막을 방법을 고민해보자. -> redirect
-        // DB에서 가져온 영속성 Product 엔티티를 OrderProduct에 넣어 DB 엔티티에 연관관계를 맺어준다.
-        List<OrderProduct> orderProducts = order.getOrderProductList().stream()
-                .map(orderProduct -> {
-                    Product findProduct = productService.findProduct(orderProduct.getProduct().getProductId());
-                    orderProduct.setProduct(findProduct);
-                    return orderProduct;
-                })
+        // 주문 상품 생성을 위한 상품 조회
+        List<Long> productIds = order.getOrderProductList().stream()
+                .map(orderProduct -> orderProduct.getProduct().getProductId())
                 .collect(Collectors.toList());
-        // 영속성 엔티티가 된 OrderProduct를 Order에 넣어준다.
-        order.setOrderProductList(orderProducts);
+        List<Product> products = productService.findProductsIds(productIds);
+        Map<Long, Product> productMap = products.stream()
+                .collect(Collectors.toMap(Product::getProductId
+                        , Function.identity()));
+        // OrderProduct에 조회된 상품 정보 매핑
+        for (OrderProduct orderProduct : order.getOrderProductList()) {
+            Product product = productMap.get(orderProduct.getProduct().getProductId());
+            if (product != null) {
+                orderProduct.setProduct(product);
+            }
+        }
 
         stockMinusCount(order);
         Order savedOrder = orderRepository.save(order);
