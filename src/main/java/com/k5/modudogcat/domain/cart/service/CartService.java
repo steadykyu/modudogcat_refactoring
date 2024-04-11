@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -125,7 +126,10 @@ public class CartService {
                 });
     }
 
-    public void removeCartProductsByCartId(Long cartId){
-        cartProductRepository.deleteAllByCartCartId(cartId);
+    public void removeCartProductsByCarts(List<Cart> carts){
+        List<Long> cartIds = carts.stream()
+                .map(cart -> cart.getCartId())
+                .collect(Collectors.toList());
+        cartProductRepository.deleteAllByCartCartIdIn(cartIds);
     }
 }

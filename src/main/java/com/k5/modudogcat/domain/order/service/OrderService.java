@@ -8,7 +8,6 @@ import com.k5.modudogcat.domain.order.entity.OrderProduct;
 import com.k5.modudogcat.domain.order.mapper.OrderMapper;
 import com.k5.modudogcat.domain.order.repository.OrderRepository;
 import com.k5.modudogcat.domain.product.entity.Product;
-import com.k5.modudogcat.domain.product.repository.ProductRepository;
 import com.k5.modudogcat.domain.product.service.ProductService;
 import com.k5.modudogcat.domain.user.entity.User;
 import com.k5.modudogcat.domain.user.service.UserService;
@@ -166,8 +165,6 @@ public class OrderService {
     }
 
     private void emptyCart(List<Cart> carts){
-        for(Cart cart : carts){
-            cartService.removeCartProductsByCartId(cart.getCartId());
-        }
+            cartService.removeCartProductsByCarts(carts);
     }
 }
