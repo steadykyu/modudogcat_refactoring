@@ -102,9 +102,7 @@ public class OrderService {
         savedOrder.setOrderProductList(orderProducts);
         return savedOrder;
     }
-//    private void stockMinusCountByNativeQuery(Order order){
-//        productService.stockMinusBy(order);
-//    }
+
     // WAS 에서 처리
     private void stockMinusCount(Order order) {
         // 주문속 상품의 주문 개수 만큼, 상품의 재고를 빼준다.
