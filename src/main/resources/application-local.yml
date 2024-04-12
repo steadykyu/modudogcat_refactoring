@@ -11,13 +11,13 @@ spring:
         format_sql: true
         #show_sql: true
         jdbc:
-          batch_size: 100
+          default_batch_size: 100
         order_updates: true
         order_inserts: true
         order_deletes: true
       dialect: org.hibernate.dialect.MySQL5InnoDBDialect
   datasource:
-    url: jdbc:mysql://localhost:3306/modudogcat?serverTimezone=Asia/Seoul
+    url: jdbc:mysql://localhost:3306/modudogcat?serverTimezone=Asia/Seoul&rewriteBatchedStatements=true
     username: ${MD_MYSQL_ID}
     password: ${MD_MYSQL_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -57,4 +57,5 @@ jwt:
 config:
   domain: http://localhost:8080
   adminId: ${ADMIN_ID}
+  batchSize: 50
     # ${ADMIN_ID} -> 환경변수를 일단 "admin"으로 등록

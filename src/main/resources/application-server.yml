@@ -9,6 +9,8 @@ spring:
         highlight_sql: true
         format_sql: true
         #show_sql: true
+        jdbc:
+          default_batch_size: 100
       dialect: org.hibernate.dialect.MySQL5InnoDBDialect
   datasource:
     url: ${RDS_URL}

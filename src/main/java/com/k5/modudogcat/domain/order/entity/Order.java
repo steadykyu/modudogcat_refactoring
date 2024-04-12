@@ -35,7 +35,7 @@ public class Order extends Auditable {
     private PayMethod payMethod = PayMethod.NO_BANK_BOOK;
     @Enumerated(value = EnumType.STRING)
     private OrderStatus orderStatus = OrderStatus.ORDER_ACTIVE;
-    @OneToMany(mappedBy = "order", cascade = {CascadeType.PERSIST, CascadeType.REMOVE}, orphanRemoval = true)
+    @OneToMany(mappedBy = "order", cascade = {CascadeType.REMOVE}, orphanRemoval = true)
     private List<OrderProduct> orderProductList = new ArrayList<>();
 
     public enum PayMethod{

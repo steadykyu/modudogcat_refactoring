@@ -1,11 +1,11 @@
 package com.k5.modudogcat.domain.order.service;
 
-import com.k5.modudogcat.domain.cart.entity.Cart;
 import com.k5.modudogcat.domain.cart.service.CartService;
 import com.k5.modudogcat.domain.order.dto.OrderDto;
 import com.k5.modudogcat.domain.order.entity.Order;
 import com.k5.modudogcat.domain.order.entity.OrderProduct;
 import com.k5.modudogcat.domain.order.mapper.OrderMapper;
+import com.k5.modudogcat.domain.order.repository.OrderProductRepository;
 import com.k5.modudogcat.domain.order.repository.OrderRepository;
 import com.k5.modudogcat.domain.product.entity.Product;
 import com.k5.modudogcat.domain.product.service.ProductService;
@@ -29,6 +29,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class OrderService {
     private final OrderRepository orderRepository;
+    private final OrderProductRepository orderProductRepository;
     private final ProductService productService;
     private final UserService userService;
     private final CartService cartService;
@@ -92,10 +93,19 @@ public class OrderService {
             }
         }
 
+        // 재고 수량 감소
         stockMinusCount(order);
-        Order savedOrder = orderRepository.save(order);
+        Order savedOrder = orderRepository.save(order); // JPA 저장 방식
+
+        // JDBC 저장 방식
+        List<OrderProduct> orderProducts = orderProductRepository.batchSaveOrderProducts(order.getOrderProductList(), savedOrder.getOrderId());
+        savedOrder.setOrderProductList(orderProducts);
         return savedOrder;
     }
+//    private void stockMinusCountByNativeQuery(Order order){
+//        productService.stockMinusBy(order);
+//    }
+    // WAS 에서 처리
     private void stockMinusCount(Order order) {
         // 주문속 상품의 주문 개수 만큼, 상품의 재고를 빼준다.
         for (OrderProduct orderProduct : order.getOrderProductList()) {
