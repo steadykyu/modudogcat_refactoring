@@ -12,7 +12,8 @@ import javax.persistence.*;
 import java.util.ArrayList;
 import java.util.List;
 
-@Entity(name = "order_table")
+@Entity
+@Table(name = "order_table")
 @AllArgsConstructor
 @NoArgsConstructor
 @Setter
@@ -21,7 +22,7 @@ public class Order extends Auditable {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long orderId;
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private User user;
     @Column(length = 20, nullable = false)
