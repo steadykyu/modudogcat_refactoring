@@ -65,8 +65,8 @@ public interface ProductMapper {
         return productDetailImageList;
     }
 
-    static ProductDto.Response productToResponse(Product product, String domain, boolean isFindAll){
-        if(product == null || isFindAll==false){
+    static ProductDto.Response productToResponse(Product product, String domain, boolean notIncludeDetailImage){
+        if(product == null || notIncludeDetailImage==false){
             return null;
         }
         ProductDto.Response response = new ProductDto.Response();

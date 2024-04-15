@@ -9,7 +9,6 @@ import com.k5.modudogcat.domain.product.entity.Product;
 import com.k5.modudogcat.domain.product.mapper.ProductMapper;
 import com.k5.modudogcat.domain.user.entity.User;
 import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
 import org.springframework.data.domain.Page;
 
 import java.util.ArrayList;
@@ -82,16 +81,17 @@ public interface OrderMapper {
         response.setModifiedAt( order.getModifiedAt() );
 
         ProductDto.Response productResponse = new ProductDto.Response();
-        List<OrderProductDto.DetailResponse> orderProductDetailResponse = order.getOrderProductList().stream()
+
+        List<OrderProductDto.ResponseIncludeProduct> orderProductResponseIncludeProduct = order.getOrderProductList().stream()
                 .map(orderProduct -> {
-                    OrderProductDto.DetailResponse detailResponse = new OrderProductDto.DetailResponse();
-                    detailResponse.setProductCount(orderProduct.getProductCount());
-                    detailResponse.setParcelNumber(orderProduct.getParcelNumber());
-                    detailResponse.setOrderProductStatus(orderProduct.getOrderProductStatus());
-                    detailResponse.setProductResponse(ProductMapper.productToResponse(orderProduct.getProduct(), domain));
-                    return detailResponse;
+                    OrderProductDto.ResponseIncludeProduct responseIncludeProduct = new OrderProductDto.ResponseIncludeProduct();
+                    responseIncludeProduct.setProductCount(orderProduct.getProductCount());
+                    responseIncludeProduct.setParcelNumber(orderProduct.getParcelNumber());
+                    responseIncludeProduct.setOrderProductStatus(orderProduct.getOrderProductStatus());
+                    responseIncludeProduct.setProductResponse(ProductMapper.productToResponse(orderProduct.getProduct(), domain,true));
+                    return responseIncludeProduct;
                 }).collect(Collectors.toList());
-        response.setDetailResponses(orderProductDetailResponse);
+        response.setResponseIncludeProducts(orderProductResponseIncludeProduct);
 
         return response;
     }

@@ -1,8 +1,6 @@
 package com.k5.modudogcat.domain.order.dto;
 
 import com.k5.modudogcat.domain.order.entity.Order;
-import com.k5.modudogcat.domain.product.dto.ProductDto;
-import com.k5.modudogcat.domain.user.dto.UserDto;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -62,7 +60,7 @@ public class OrderDto {
         private Order.OrderStatus orderStatus;
         private LocalDateTime createdAt;
         private LocalDateTime modifiedAt;
-        private List<OrderProductDto.DetailResponse> detailResponses;
+        private List<OrderProductDto.ResponseIncludeProduct> responseIncludeProducts;
         public String getOrderStatus() {
             return orderStatus.getStatus();
         }

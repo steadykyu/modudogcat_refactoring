@@ -13,7 +13,6 @@ import org.hibernate.annotations.BatchSize;
 import javax.persistence.*;
 
 @Entity
-@BatchSize(size = 100)
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
@@ -25,7 +24,7 @@ public class OrderProduct extends Auditable {
     @ManyToOne
     @JoinColumn(name = "order_id")
     private Order order;
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id")
     private Product product;
     private Long productCount = 1L;

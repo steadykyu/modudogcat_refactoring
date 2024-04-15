@@ -1,7 +1,6 @@
 package com.k5.modudogcat.domain.order.dto;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.k5.modudogcat.domain.order.entity.Order;
 import com.k5.modudogcat.domain.order.entity.OrderProduct;
 import com.k5.modudogcat.domain.product.dto.ProductDto;
 import com.k5.modudogcat.domain.product.entity.Product;
@@ -12,7 +11,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.springframework.lang.Nullable;
 
-import javax.validation.constraints.Pattern;
 import java.time.LocalDateTime;
 
 public class OrderProductDto {
@@ -45,7 +43,7 @@ public class OrderProductDto {
     @Setter
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class DetailResponse {
+    public static class ResponseIncludeProduct {
         private Long productCount;
         private String parcelNumber;
         private OrderProduct.OrderProductStatus orderProductStatus;

@@ -120,7 +120,7 @@ public class OrderService {
     public Order updateOrder(Order order, Long userId){
         Long orderId = order.getOrderId();
         Order findOrder = findVerifiedOrderById(orderId);
-        verifyCorrectUser(orderId, userId);
+        verifyCorrectUser(findOrder, userId);
 
         Optional.ofNullable(order.getReceiver())
                 .ifPresent(newReceiver -> findOrder.setReceiver(newReceiver));
@@ -133,8 +133,9 @@ public class OrderService {
         return orderRepository.save(findOrder);
     }
     public Order findOrder(Long orderId, Long userId){
+        // todo: 수정해야함
         Order findOrder = findVerifiedOrderById(orderId);
-        verifyCorrectUser(orderId, userId);
+        verifyCorrectUser(findOrder, userId);
 
         return findOrder;
     }
@@ -160,7 +161,7 @@ public class OrderService {
     @Transactional
     public void removeOrder(Long orderId, Long userId){
         Order findOrder = findVerifiedOrderById(orderId);
-        verifyCorrectUser(orderId, userId);
+        verifyCorrectUser(findOrder, userId);
 
         findOrder.setOrderStatus(Order.OrderStatus.ORDER_DELETE);
     }
@@ -171,8 +172,7 @@ public class OrderService {
         }
     }
 
-    public void verifyCorrectUser(Long orderId, Long LoginUserId){
-        Order findOrder = findVerifiedOrderById(orderId);
+    public void verifyCorrectUser(Order findOrder, Long LoginUserId){
         Long dbUserId = findOrder.getUser().getUserId();
         if(LoginUserId != dbUserId){
             throw new BusinessLogicException(ExceptionCode.NOT_ALLOWED_USER);
