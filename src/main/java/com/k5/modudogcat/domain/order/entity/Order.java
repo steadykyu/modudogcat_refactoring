@@ -7,6 +7,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.BatchSize;
 
 import javax.persistence.*;
 import java.util.ArrayList;
@@ -37,6 +38,7 @@ public class Order extends Auditable {
     @Enumerated(value = EnumType.STRING)
     private OrderStatus orderStatus = OrderStatus.ORDER_ACTIVE;
     @OneToMany(mappedBy = "order", cascade = {CascadeType.REMOVE}, orphanRemoval = true)
+    @BatchSize(size = 12)
     private List<OrderProduct> orderProductList = new ArrayList<>();
 
     public enum PayMethod{

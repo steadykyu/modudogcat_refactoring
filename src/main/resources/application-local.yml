@@ -11,7 +11,7 @@ spring:
         format_sql: true
         #show_sql: true
         jdbc:
-          default_batch_size: 100
+          default_batch_size: 12
         order_updates: true
         order_inserts: true
         order_deletes: true

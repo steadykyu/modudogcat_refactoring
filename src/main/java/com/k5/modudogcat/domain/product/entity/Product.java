@@ -15,7 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@BatchSize(size = 100)
+@BatchSize(size = 50)
 @AllArgsConstructor
 @NoArgsConstructor
 @Setter
