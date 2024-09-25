@@ -162,7 +162,7 @@ Hibernate:
     
 </details>
 <details>
-  <summary>(2)AWS 무료 서버가 멈춰버리는 이슈의 물리적 해결 </summary>
+  <summary>(2) 페이징시 AWS 서버 프리징 이슈 - 물리적 해결 </summary>
   <strong>이슈 정의</strong>
   
   프로젝트의 홈페이지는 전체상품을 페이징하여 가져오는 작업이다. 해당 작업시 CPU를 비정상적으로 사용하는 모습을 발견했다.
