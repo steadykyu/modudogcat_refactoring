@@ -173,8 +173,9 @@ Hibernate:
   AWS 프리티어에서 제공하는 t2.micro(CPU)는 CPU 크레딧이 라는 개념이 존재한다. 해당 baseline 이라는 허용하는 사용치를 초과해서 사용하면 CPU 성능 제공을 멈춘다. 이러한 이유로 서버가 멈추는 것임을 알았다.
 
   <strong>조치 방안 검토</strong>
+  
   (1) 방안: swap 메모리로 RAM 성능을 끌어올리자.
-  취준생 신분으로 돈으로 리소스를 늘릴 수는 없어서, SWAP메모리를 통해 HDD 리소스를 일부 RAM으로 활용하는 전략을 택했다.
+  취준생 신분으로 돈으로 리소스를 늘릴 수는 없어서, SWAP메모리를 통해 EC2의 HDD 리소스를 일부 RAM으로 활용하는 전략을 택했다.
   
   <img src="https://github.com/steadykyu/modudogcat_refactoring/blob/main/sampleImage/studySample/swap메모리적용후_CPU사용율.png" alt="swap 메모리후 CPU">
   
