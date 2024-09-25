@@ -161,6 +161,31 @@ Hibernate:
 ```
     
 </details>
+<details>
+  <summary>(2)AWS 무료 서버가 멈춰버리는 이슈의 물리적 해결 </summary>
+  <strong>이슈 정의</strong>
+  
+  프로젝트의 홈페이지는 전체상품을 페이징하여 가져오는 작업이다. 해당 작업시 CPU를 비정상적으로 사용하는 모습을 발견했다.
+  CPU가 비정상적으로 사용되면서, AWS 무료 크레딧이 모두 소진되어 서버가 다운되는 현상이 일어났다.
+
+  <strong>원인 추론</strong>
+
+  AWS 프리티어에서 제공하는 t2.micro(CPU)는 CPU 크레딧이 라는 개념이 존재한다. 해당 baseline 이라는 허용하는 사용치를 초과해서 사용하면 CPU 성능 제공을 멈춘다. 이러한 이유로 서버가 멈추는 것임을 알았다.
+
+  <strong>조치 방안 검토</strong>
+  (1) 방안: swap 메모리로 RAM 성능을 끌어올리자.
+  취준생 신분으로 돈으로 리소스를 늘릴 수는 없어서, SWAP메모리를 통해 HDD 리소스를 일부 RAM으로 활용하는 전략을 택했다.
+  
+  <img src="https://github.com/steadykyu/modudogcat_refactoring/blob/main/sampleImage/studySample/swap메모리적용후_CPU사용율.png" alt="swap 메모리후 CPU">
+  
+  페이지네이션 CPU 사용률이 올라가는 모습을 볼 수 있는데, CPU 사용량이 8퍼센트 정도로 서버가 터질정도로 문제가 되지 않는 모습을 볼 수 있다.
+
+  - 19:00 : 여러 User들의 요청을 페이지네이션
+
+  <strong>결과 관찰</strong>
+  
+  결과적으로 이제 서버가 터지지 않고 Spring 프로젝트를 빌드할 수 있고, 페이지네이션에도 문제가 발생하지 않았다.
+</details>
 
 ### 회고/피드백
 **만족한점** </br>
