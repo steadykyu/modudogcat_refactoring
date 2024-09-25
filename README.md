@@ -84,6 +84,83 @@
 **(1) 중요 트러블 슈팅** </br>
 
 **(2) 그 외 트러블 슈팅** </br>
+<details>
+  <summary>(1) Update 기능 리팩토링하기(merge 방식 → DirtyChecking 방식) </summary>
+  <strong>문제정의</strong>
+  
+  이전 수정 기능의 코드들을 살펴보겠습니다.
+  
+  ```java
+    @Transactional
+    public User updateUser(User user){
+        Long userId = user.getUserId();
+        User findUser = findVerifiedUserById(userId);
+
+        Optional.ofNullable(user.getPassword())
+                .ifPresent(newPassword -> findUser.setPassword(passwordEncoder.encode(newPassword)));
+        Optional.ofNullable(user.getAddress())
+                .ifPresent(newAddress -> findUser.setAddress(newAddress));
+        Optional.ofNullable(user.getEmail())
+                .ifPresent(newEmail -> findUser.setEmail(newEmail));
+
+        return userRepository.save(findUser); //---------------- (1)
+    }
+  ```
+
+  디버그를 찍어보니 위 코드를 동작하면 JpaRepository의 구현체인 SimpleJpaRepository의 save()를 사용한다. 이 방식은 merge() 인 병합의 방식을 사용하는데, 이는 병합에 사용하는 엔티티 객체의 모든 필드를 가져와서
+  병합을 시도하므로, 만약 수정되려는 해당 객체의 일부 필드에 null이 존재하는 경우 수정전 필드의 값을 null로 수정할 수 있습니다. 즉 필드 누락의 가능성이 존재합니다.
+
+  <strong>제안하는 방안</strong>
+  
+  병합보다 JPA에서 권장하는 변경 감지 방식을 이용하면 수정하지 않는 엔티티 필드값은 유지하고, 수정된 필드의 값만 변경하여 update 쿼리를 날리도록 동작한다.
+  - 필드 누락 가능성 감소
+  - 효율적인 SQL 생성
+  - 데이터베이스 통신 최소화
+  - 캐시 이점 활용
+
+  <strong> 문제 해결</strong>
+  ```java
+    @Transactional
+    public User updateUser(User user){
+        Long userId = user.getUserId();
+        User findUser = findVerifiedUserById(userId);
+
+        Optional.ofNullable(user.getPassword())
+                .ifPresent(newPassword -> findUser.setPassword(passwordEncoder.encode(newPassword)));
+        Optional.ofNullable(user.getAddress())
+                .ifPresent(newAddress -> findUser.setAddress(newAddress));
+        Optional.ofNullable(user.getEmail())
+                .ifPresent(newEmail -> findUser.setEmail(newEmail));
+
+        //        return userRepository.save(findUser);
+        return findUser; 
+    }
+  ```
+  JPA가 권장하는 변경감지로 동작하도록 명시적으로 save()를 사용하지 않고, 엔티티를 그대로 반환했다. 이제 엔티티는 캐시에 저장된 수정 전의 엔티티와 비교하여 변경감지의 대상이 되어 수정된 필드의 값만 변경한
+  적절한 update 쿼리를 날려준다.
+  
+
+**결과 쿼리**
+
+```java
+Hibernate: 
+    update
+        user_table 
+    set
+        modified_at=?,
+        address=?,
+        admin_id=?,
+        email=?,
+        login_id=?,
+        name=?,
+        password=?,
+        seller_id=?,
+        user_status=? 
+    where
+        user_id=?
+```
+    
+</details>
 
 ### 회고/피드백
 **만족한점** </br>
