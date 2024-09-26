@@ -82,7 +82,6 @@
 
 ### 트러블 슈팅 경험
 **(1) 중요 트러블 슈팅** </br>
-
 **(2) 그 외 트러블 슈팅** </br>
 <details>
   <summary>(1) Update 기능 리팩토링하기(merge 방식 → DirtyChecking 방식) </summary>
@@ -186,6 +185,378 @@ Hibernate:
   <strong>결과 관찰</strong>
   
   결과적으로 이제 서버가 터지지 않고 Spring 프로젝트를 빌드할 수 있고, 페이지네이션에도 문제가 발생하지 않았다.
+</details>
+<details>
+  <summary>(3) 페이징시 AWS 프리징 이슈 해결 - select query 성능 최적화 하기</summary>
+  <strong>이슈 정의</strong>
+  
+  홈페이지가 열릴때는 여러 Product 를 조회하도록 페이지네이션 기능이 동작한다. 그런데 해당 페이지를 열때 많은 시간이 걸리는 것을 발견했다.
+
+  <strong>사실 수집 및 원인 추론</strong>
+  
+  이전 해당 코드를 작성한 백엔드 개발자와의 소통 부족으로 적절하지 않은 정보들이 응답메시지와 로그에 담기고 있었다. 
+  
+  > 문제1) 페이지마다 같은 내용의 중복 쿼리 내용의 로그가 발생하여 성능을 망가트리고 있다.
+  
+  <details>
+  <summary>문제1 로그</summary>
+    
+  ```java
+        select
+        product0_.product_id as product_1_6_,
+        product0_.created_at as created_2_6_,
+        product0_.modified_at as modified3_6_,
+        product0_.name as name4_6_,
+        product0_.price as price5_6_,
+        product0_.product_detail as product_6_6_,
+        product0_.product_status as product_7_6_,
+        product0_.seller_id as seller_11_6_,
+        product0_.stock as stock8_6_,
+        product0_.thumbnail_image as thumbnai9_6_,
+        product0_.thumbnail_image_type as thumbna10_6_
+    from
+        product product0_
+    where
+        product0_.product_status not like ? escape ?
+    order by
+        product0_.created_at desc limit ?,
+        ?
+[Hibernate]
+    select
+        product0_.product_id as product_1_6_,
+        product0_.created_at as created_2_6_,
+        product0_.modified_at as modified3_6_,
+        product0_.name as name4_6_,
+        product0_.price as price5_6_,
+        product0_.product_detail as product_6_6_,
+        product0_.product_status as product_7_6_,
+        product0_.seller_id as seller_11_6_,
+        product0_.stock as stock8_6_,
+        product0_.thumbnail_image as thumbnai9_6_,
+        product0_.thumbnail_image_type as thumbna10_6_
+    from
+        product product0_
+    where
+        product0_.product_status not like ? escape ?
+    order by
+        product0_.created_at desc limit ?,
+        ?
+  ```
+  </details>
+
+  > 문제2) 기능에 필요없는 연관관계의 엔티티를 조회하며 성능을 망가트리고 있다.
+  <details>
+  <summary>문제2 로그</summary>
+  ```java
+  select
+        seller0_.seller_id as seller_i1_10_0_,
+        seller0_.created_at as created_2_10_0_,
+        seller0_.modified_at as modified3_10_0_,
+        seller0_.account_number as account_4_10_0_,
+        seller0_.address as address5_10_0_,
+        seller0_.bank_name as bank_nam6_10_0_,
+        seller0_.email as email7_10_0_,
+        seller0_.login_id as login_id8_10_0_,
+        seller0_.name as name9_10_0_,
+        seller0_.password as passwor10_10_0_,
+        seller0_.phone as phone11_10_0_,
+        seller0_.registration_number as registr12_10_0_,
+        seller0_.seller_status as seller_13_10_0_,
+        user1_.user_id as user_id1_11_1_,
+        user1_.created_at as created_2_11_1_,
+        user1_.modified_at as modified3_11_1_,
+        user1_.address as address4_11_1_,
+        user1_.admin_id as admin_i10_11_1_,
+        user1_.email as email5_11_1_,
+        user1_.login_id as login_id6_11_1_,
+        user1_.name as name7_11_1_,
+        user1_.password as password8_11_1_,
+        user1_.seller_id as seller_11_11_1_,
+        user1_.user_status as user_sta9_11_1_,
+        roles2_.user_table_user_id as user_tab1_12_2_,
+        roles2_.roles as roles2_12_2_
+    from
+        seller seller0_
+    left outer join
+        user_table user1_
+            on seller0_.seller_id=user1_.seller_id
+    left outer join
+        user_table_roles roles2_
+            on user1_.user_id=roles2_.user_table_user_id
+    where
+        seller0_.seller_id=?
+[Hibernate]
+    select
+        seller0_.seller_id as seller_i1_10_0_,
+        seller0_.created_at as created_2_10_0_,
+        seller0_.modified_at as modified3_10_0_,
+        seller0_.account_number as account_4_10_0_,
+        seller0_.address as address5_10_0_,
+        seller0_.bank_name as bank_nam6_10_0_,
+        seller0_.email as email7_10_0_,
+        seller0_.login_id as login_id8_10_0_,
+        seller0_.name as name9_10_0_,
+        seller0_.password as passwor10_10_0_,
+        seller0_.phone as phone11_10_0_,
+        seller0_.registration_number as registr12_10_0_,
+        seller0_.seller_status as seller_13_10_0_,
+        user1_.user_id as user_id1_11_1_,
+        user1_.created_at as created_2_11_1_,
+        user1_.modified_at as modified3_11_1_,
+        user1_.address as address4_11_1_,
+        user1_.admin_id as admin_i10_11_1_,
+        user1_.email as email5_11_1_,
+        user1_.login_id as login_id6_11_1_,
+        user1_.name as name7_11_1_,
+        user1_.password as password8_11_1_,
+        user1_.seller_id as seller_11_11_1_,
+        user1_.user_status as user_sta9_11_1_,
+        roles2_.user_table_user_id as user_tab1_12_2_,
+        roles2_.roles as roles2_12_2_
+    from
+        seller seller0_
+    left outer join
+        user_table user1_
+            on seller0_.seller_id=user1_.seller_id
+    left outer join
+        user_table_roles roles2_
+            on user1_.user_id=roles2_.user_table_user_id
+    where
+        seller0_.seller_id=?
+2024-03-20 09:27:54.097 DEBUG 1188 --- [nio-8080-exec-9] org.hibernate.SQL                        :
+    select
+        cart0_.cart_id as cart_id1_2_1_,
+        cart0_.user_id as user_id2_2_1_,
+        user1_.user_id as user_id1_11_0_,
+        user1_.created_at as created_2_11_0_,
+        user1_.modified_at as modified3_11_0_,
+        user1_.address as address4_11_0_,
+        user1_.admin_id as admin_i10_11_0_,
+        user1_.email as email5_11_0_,
+        user1_.login_id as login_id6_11_0_,
+        user1_.name as name7_11_0_,
+        user1_.password as password8_11_0_,
+        user1_.seller_id as seller_11_11_0_,
+        user1_.user_status as user_sta9_11_0_,
+        roles2_.user_table_user_id as user_tab1_12_3_,
+        roles2_.roles as roles2_12_3_
+    from
+        cart cart0_
+    left outer join
+        user_table user1_
+            on cart0_.user_id=user1_.user_id
+    left outer join
+        user_table_roles roles2_
+            on user1_.user_id=roles2_.user_table_user_id
+    where
+        cart0_.user_id=?
+[Hibernate]
+    select
+        cart0_.cart_id as cart_id1_2_1_,
+        cart0_.user_id as user_id2_2_1_,
+        user1_.user_id as user_id1_11_0_,
+        user1_.created_at as created_2_11_0_,
+        user1_.modified_at as modified3_11_0_,
+        user1_.address as address4_11_0_,
+        user1_.admin_id as admin_i10_11_0_,
+        user1_.email as email5_11_0_,
+        user1_.login_id as login_id6_11_0_,
+        user1_.name as name7_11_0_,
+        user1_.password as password8_11_0_,
+        user1_.seller_id as seller_11_11_0_,
+        user1_.user_status as user_sta9_11_0_,
+        roles2_.user_table_user_id as user_tab1_12_3_,
+        roles2_.roles as roles2_12_3_
+    from
+        cart cart0_
+    left outer join
+        user_table user1_
+            on cart0_.user_id=user1_.user_id
+    left outer join
+        user_table_roles roles2_
+            on user1_.user_id=roles2_.user_table_user_id
+    where
+        cart0_.user_id=?
+  ```
+  </details>
+  Product를 페이지네이션 기능에는 Product의 필드 정보까지만 가져오면 된다. 그러나 Product와 연관관계가 존재하는 엔티티(판매자, 권한, 유저정보등)의 정보들도 조인을 통해 가져오고 있다.
+
+  -> 연관관계 엔티티간의 CasCade, LazyLoading, EagerLoading을 조사하자.
+
+  > 문제 3) 기능에 필요없는 연관관계의 엔티티를 조회하며 성능을 망가트리고 있다.
+  <details>
+    <summary>문제3 로그</summary>
+    ```java
+     select
+        productdet0_.product_id as product_4_7_0_,
+        productdet0_.detail_image_id as detail_i1_7_0_,
+        productdet0_.detail_image_id as detail_i1_7_1_,
+        productdet0_.image as image2_7_1_,
+        productdet0_.product_id as product_4_7_1_,
+        productdet0_.type as type3_7_1_
+    from
+        product_detail_image productdet0_
+    where
+        productdet0_.product_id=?
+        
+Size 만큼  N번 반복!!
+...
+    ```
+  </details>
+   홈페이지에는 Product의 썸네일 이미지만 조회하면 된다. 그러나 상품 속 디테일 이미지까지 조회하고 있으며, N+1 문제가 발생하고 있다.
+
+  -> 연관관계 엔티티간의 CasCade, LazyLoading, EagerLoading을 조사하자.
+
+  > 문제4) 기능에 필요없는 연관관계의 엔티티를 조회하며 성능을 망가트리고 있다.
+
+  <details>
+    <summary>문제 4 로그</summary>
+    ```java
+      select
+        product0_.product_id as product_1_6_0_,
+        product0_.created_at as created_2_6_0_,
+        product0_.modified_at as modified3_6_0_,
+        product0_.name as name4_6_0_,
+        product0_.price as price5_6_0_,
+        product0_.product_detail as product_6_6_0_,
+        product0_.product_status as product_7_6_0_,
+        product0_.seller_id as seller_11_6_0_,
+        product0_.stock as stock8_6_0_,
+        product0_.thumbnail_image as thumbnai9_6_0_,
+        product0_.thumbnail_image_type as thumbna10_6_0_,
+        seller1_.seller_id as seller_i1_10_1_,
+        seller1_.created_at as created_2_10_1_,
+        seller1_.modified_at as modified3_10_1_,
+        seller1_.account_number as account_4_10_1_,
+        seller1_.address as address5_10_1_,
+        seller1_.bank_name as bank_nam6_10_1_,
+        seller1_.email as email7_10_1_,
+        seller1_.login_id as login_id8_10_1_,
+        seller1_.name as name9_10_1_,
+        seller1_.password as passwor10_10_1_,
+        seller1_.phone as phone11_10_1_,
+        seller1_.registration_number as registr12_10_1_,
+        seller1_.seller_status as seller_13_10_1_,
+        user2_.user_id as user_id1_11_2_,
+        user2_.created_at as created_2_11_2_,
+        user2_.modified_at as modified3_11_2_,
+        user2_.address as address4_11_2_,
+        user2_.admin_id as admin_i10_11_2_,
+        user2_.email as email5_11_2_,
+        user2_.login_id as login_id6_11_2_,
+        user2_.name as name7_11_2_,
+        user2_.password as password8_11_2_,
+        user2_.seller_id as seller_11_11_2_,
+        user2_.user_status as user_sta9_11_2_
+    from
+        product product0_
+    left outer join
+        seller seller1_
+            on product0_.seller_id=seller1_.seller_id
+    left outer join
+        user_table user2_
+            on seller1_.seller_id=user2_.seller_id
+    where
+        product0_.product_id=?
+
+    + (위 seller와 연관되어있는 User의 상세정보를 Join query로 가져옴)
+    ```
+  </details>
+  
+  상품 속 개별 썸네일 파일을 서버에 요청할때, 연관관계의 엔티티인 Product, Seller, UserInfo등 해당 기능에 쓸모 없는 엔티티 정보들이 조인하여 가져오는 쿼리를 날리고 있다.
+  
+  -> 연관관계 엔티티간의 CasCade, LazyLoading, EagerLoading을 조사하자.
+
+  <strong> 조치 방안 검토</strong>
+
+  <details>
+    <summary>문제1 해결: Logging 설정 정보 변경으로 중복 로그 제거하기</summary>
+    ```java
+spring:
+  jpa:
+    database: mysql
+    database-platform: org.hibernate.dialect.MySQL5InnoDBDialect
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        highlight_sql: true
+        format_sql: true
+        #show_sql: true
+--------------------------
+logging:
+  level:
+    org:
+      hibernate:
+        SQL: DEBUG
+        type: DEBUG
+    ```
+  </details>
+
+  <details>
+    <summary>문제2,3,4 해결: 지연 로딩을 통한 쿼리최적화</summary>
+    홈페이지에서 조회에 사용되는 Product를 LazyLoading으로 지정하여 필요한 정보만을 담은 적절한 Response를 만들어준다.
+
+    
+    ```java
+    package com.k5.modudogcat.domain.product.entity;
+
+@Entity
+@AllArgsConstructor
+@NoArgsConstructor
+@Setter
+@Getter
+public class Product extends Auditable {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long productId;
+    private String name;
+    @Lob
+    private byte[] thumbnailImage;
+    private String thumbnailImageType;
+    
+//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ (1) 연관 엔티티들에 Lazy 지정하기
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "seller_id")
+    private Seller seller;
+    
+    ...
+}
+
+    ```
+  </details>
+
+  <strong> 결과 관찰 </strong>
+
+  지연로딩을 통해 필요한 정보만 가진 Response를 생성함으로써 조회 성능이 최적화된 아래의 쿼리로 페이징 기능이 동작한다!
+  ```java
+2024-03-24 18:42:25.391 DEBUG 24548 --- [nio-8080-exec-2] org.hibernate.SQL                        : 
+    select
+        product0_.product_id as product_1_6_,
+        product0_.created_at as created_2_6_,
+        product0_.modified_at as modified3_6_,
+        product0_.name as name4_6_,
+        product0_.price as price5_6_,
+        product0_.product_detail as product_6_6_,
+        product0_.product_status as product_7_6_,
+        product0_.seller_id as seller_11_6_,
+        product0_.stock as stock8_6_,
+        product0_.thumbnail_image as thumbnai9_6_,
+        product0_.thumbnail_image_type as thumbna10_6_ 
+    from
+        product product0_ 
+    where
+        product0_.product_status not like ? escape ? 
+    order by
+        product0_.created_at desc limit ?
+2024-03-24 18:42:25.492 DEBUG 24548 --- [nio-8080-exec-2] org.hibernate.SQL                        : 
+    select
+        count(product0_.product_id) as col_0_0_ 
+    from
+        product product0_ 
+    where
+        product0_.product_status not like ? escape ?
+  ```
 </details>
 
 ### 회고/피드백
