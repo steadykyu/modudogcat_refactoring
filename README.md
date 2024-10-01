@@ -558,6 +558,134 @@ public class Product extends Auditable {
         product0_.product_status not like ? escape ?
   ```
 </details>
+<details>
+  <summary>(4) 양방향 @OneToOne 관계에서 Lazy Loading이 동작하지 않는 이슈 해결</summary>
+  <strong>이슈 정의</strong>
+  
+  장바구니(Cart) 엔티티는 회원 엔티티와 일대일 관계이고, 장바구니를 연관관계 주인으로 설정해 두었다. 그런데 @OneToOne 양방향 매핑속에서 주인이 아닌 쪽(여기서는 회원)의 조회 쿼리를 날리는 기능을 동작시키니 장바구니 정보가 필요없음에도 장바구니 엔티티를 지연로딩이 아닌 즉시 로딩을 해오고 있다.
+
+  <strong>사실 추론</strong>
+  <details>
+    <summary>User 엔티티</summary>
+    
+```java
+@Entity(name = "user_table")
+@AllArgsConstructor
+@NoArgsConstructor
+@Setter
+@Getter
+public class User extends Auditable {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long userId;
+	   ...
+//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@(1)
+    @OneToOne(fetch = FetchType.LAZY, mappedBy = "user", cascade = {CascadeType.PERSIST, CascadeType.REMOVE})
+    private Cart cart;
+    
+    public enum UserStatus {
+        USER_ACTIVE("활동중"),
+        USER_SLEEP("휴면계정"),
+        USER_DELETE("삭제된계정");
+        @Getter
+        private final String status;
+        UserStatus(String status){
+            this.status = status;
+        }
+    }
+
+    /**
+     * 연관관계 편의 메서드
+     */
+    public void addCart(Cart cart){
+        this.cart = cart;
+        cart.setUser(this);
+    }
+
+}
+```
+(1) 조회에 사용되는 User 엔티티는 연관관계 주인이 아닌쪽이며 Cart와 양방향 매핑이고, Lazy loading으로 설정되어 있다.
+  </details>
+  <details>
+    <summary>User를 조회하는 쿼리</summary>
+
+```java
+    select
+        user0_.user_id as user_id1_11_0_,
+        user0_.created_at as created_2_11_0_,
+        user0_.modified_at as modified3_11_0_,
+        user0_.address as address4_11_0_,
+        user0_.admin_id as admin_i10_11_0_,
+        user0_.email as email5_11_0_,
+        user0_.login_id as login_id6_11_0_,
+        user0_.name as name7_11_0_,
+        user0_.password as password8_11_0_,
+        user0_.seller_id as seller_11_11_0_,
+        user0_.user_status as user_sta9_11_0_,
+        roles1_.user_table_user_id as user_tab1_12_1_,
+        roles1_.roles as roles2_12_1_ 
+    from
+        user_table user0_ 
+    left outer join
+        user_table_roles roles1_ 
+            on user0_.user_id=roles1_.user_table_user_id 
+    where
+        user0_.user_id=?
+//---------------문제의 추가된 장바구니 쿼리------------------
+    select
+        cart0_.cart_id as cart_id1_2_0_,
+        cart0_.user_id as user_id2_2_0_ 
+    from
+        cart cart0_ 
+    where
+        cart0_.user_id=?
+```
+회원을 조회하는 기능에는 당장 장바구니가 필요없어서 Lazy loading으로 엔티티관계를 설정했었다. 그러나 위 쿼리처럼 장바구니가 즉시로딩 되고 있다.
+  </details>
+
+  <strong>원인 추론</strong>
+  
+양방향 매핑의 OneToOne 의 경우, 주인이 아닌 엔티티를 조회할때 주인쪽 엔티티의 외래키 필드에 프록시 객체를 넣어야 할지 null을 넣어야할지 JPA가 유추할 수 없다는 이유로 즉시로딩이 동작하도록 설정되어 있었다.
+DB 시각으로 봐보면 위 설정의 이유를 알 수 있다. 주인이 아닌 엔티티 테이블 정보로 연관관계 엔티티 테이블의 외래키 필드 값의 존재 여부를 알 수 없다. 그러므로 JPA는 주인쪽 외래키 필드에 null을 넣기도 애매하고 프록시 객체를 만들어두기도 애매하여 즉시로딩을 동작시킨다.
+
+<strong>조치 방안 검토</strong>
+1. 설계 구조를  OneToMany 또는 ManyToOne 관계로 변경하기
+2. 장바구니 정보를 페치 조인으로 한개의 쿼리로 전부 조회시키기
+3. byte code instrument을 이용
+
+설계상으로 회원은 여러개의 장바구니를 가질 수 있고 관련 추가 기능 개발시 확장성이 가능하도록 하다는 점, 코드 수정에 큰 리소스가 들어가지 않다는 점을 이유로 장바구니와의 연관관계를 @ManyToOne으로 변경하는 1번의 조치방안을 선택했다.
+
+<strong>결과 적용 후 관찰</strong>
+
+<details>
+<summary>회원(구매자) 조회 쿼리가 이제 장바구니를 제외하고 한번만 조회한다.</summary>
+  
+```java
+    select
+        user0_.user_id as user_id1_11_0_,
+        user0_.created_at as created_2_11_0_,
+        user0_.modified_at as modified3_11_0_,
+        user0_.address as address4_11_0_,
+        user0_.admin_id as admin_i10_11_0_,
+        user0_.email as email5_11_0_,
+        user0_.login_id as login_id6_11_0_,
+        user0_.name as name7_11_0_,
+        user0_.password as password8_11_0_,
+        user0_.seller_id as seller_11_11_0_,
+        user0_.user_status as user_sta9_11_0_,
+        roles1_.user_table_user_id as user_tab1_12_1_,
+        roles1_.roles as roles2_12_1_ 
+    from
+        user_table user0_ 
+    left outer join
+        user_table_roles roles1_ 
+            on user0_.user_id=roles1_.user_table_user_id 
+    where
+        user0_.user_id=?
+```
+</details>
+
+</details>
 
 ### 회고/피드백
 **만족한점** </br>
