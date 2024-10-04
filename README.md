@@ -252,6 +252,705 @@ public interface UserRepository extends JpaRepository<User, Long> {
 </details>
 
 <details>
+	<summary>2. 주문 생성시 쿼리 최적화 (N+1 해결 및 select, insert, delete 쿼리 성능 최적화)</summary> <br>
+	
+ <strong>이슈 정의</strong>
+ 
+ 여러 도메인(User, Product등)이 섞인 주문(Order) 생성을 하는 과정에서 예상보다 많은 쿼리들이 발생하여 성능 최적화의 필요성을 느꼈다.
+
+ <strong>사실 수집</strong>
+ 
+ > 주문 생성 기본 로직
+
+ <details>
+	 <summary>주문 생성 메서드</summary>
+
+```java
+public Order createOrder(Order order){
+        // 영속성 회원 엔티티 넣어주기
+        User findUser = userService.findVerifiedUserIncludeCart(order.getUser().getUserId());
+        order.setUserAddOrder(findUser);
+        
+        // 장바구니 비워주기
+        emptyCart(findUser.getCart());
+
+        // 요청된 주문속의 상품정보를 통해 Order 엔티티 생성하기
+        List<OrderProduct> orderProducts = order.getOrderProductList().stream()
+                .map(orderProduct -> {
+                    Product findProduct = productService.findProduct(orderProduct.getProduct().getProductId());
+                    orderProduct.setProduct(findProduct);
+                    return orderProduct;
+                })
+                .collect(Collectors.toList());
+        
+        order.setOrderProductList(orderProducts);
+
+				// 재고 감소시키기
+        stockMinusCount(order);
+        
+        Order savedOrder = orderRepository.save(order);
+        return savedOrder;
+    }
+```
+ </details>
+
+ <details>
+	 <summary>Order 관련 엔티티 소스 코드</summary> <br>
+
+  <details>
+	  <summary>USER</summary>
+	  
+```java
+@Entity(name = "user_table")
+@AllArgsConstructor
+@NoArgsConstructor
+@Setter
+@Getter
+public class User extends Auditable {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long userId;
+    @Column(length = 20, nullable = false, unique = true)
+    private String loginId;
+    @Column(length = 20, nullable = false)
+    private String name;
+    @Column(nullable = false)
+    private String password;
+    @Column(nullable = false)
+    private String email;
+    @Column(nullable = false)
+    private String address;
+    @Enumerated(value = EnumType.STRING)
+    private UserStatus userStatus = UserStatus.USER_ACTIVE;
+    @ElementCollection(fetch = FetchType.LAZY)
+    private List<String> roles = new ArrayList<>();
+    @OneToMany(mappedBy = "user", cascade = CascadeType.REMOVE)
+    private List<Order> orderList;
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "seller_id")
+    private Seller seller;
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.PERSIST)
+    @JoinColumn(name = "admin_id")
+    private Admin admin;
+    @OneToMany(fetch = FetchType.LAZY, mappedBy = "user", cascade = {CascadeType.PERSIST, CascadeType.REMOVE})
+    private List<Cart> cart = new ArrayList<>();
+    
+    public enum UserStatus {
+        USER_ACTIVE("활동중"),
+        USER_SLEEP("휴면계정"),
+        USER_DELETE("삭제된계정");
+        @Getter
+        private final String status;
+        UserStatus(String status){
+            this.status = status;
+        }
+    }
+
+    /**
+     * DTO 교환을 위한 생성자
+     */
+    public User(String loginId, String name, String password, String email, String address) {
+        this.loginId = loginId;
+        this.name = name;
+        this.password = password;
+        this.email = email;
+        this.address = address;
+    }
+
+    /**
+     * 연관관계 편의 메서드
+     */
+    public void addCart(Cart cart){
+        this.cart.add(cart);
+        cart.setUser(this);
+    }
+
+}
+```
+ </details>
+ 
+ <details>
+ <summary><b>Order</b></summary>
+
+```java
+@Entity(name = "order_table")
+@AllArgsConstructor
+@NoArgsConstructor
+@Setter
+@Getter
+public class Order extends Auditable {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long orderId;
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private User user;
+    @Column(length = 20, nullable = false)
+    private String receiver;
+    @Column(length = 20, nullable = false)
+    private String phone;
+    @Column(nullable = false)
+    private String receivingAddress;
+    private Long totalPrice;
+    @Enumerated(value = EnumType.STRING)
+    private PayMethod payMethod = PayMethod.NO_BANK_BOOK;
+    @Enumerated(value = EnumType.STRING)
+    private OrderStatus orderStatus = OrderStatus.ORDER_ACTIVE;
+    @OneToMany(mappedBy = "order", cascade = {CascadeType.PERSIST, CascadeType.REMOVE})
+    private List<OrderProduct> orderProductList = new ArrayList<>();
+
+    public enum PayMethod{
+        NO_BANK_BOOK("무통장");
+
+        @Getter
+        private final String status;
+        PayMethod(String status){
+            this.status = status;
+        }
+    }
+    public enum OrderStatus{
+        ORDER_ACTIVE("활성화주문"),
+        ORDER_DELETE("삭제된주문");
+        @Getter
+        private final String status;
+        OrderStatus(String status){
+            this.status = status;
+        }
+    }
+}
+```
+ </details>
+
+ <details>
+	 <summary>OrderProduct</summary>
+	 
+```java
+@Entity
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+public class OrderProduct extends Auditable {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long orderProductId;
+    @ManyToOne
+    @JoinColumn(name = "order_id")
+    private Order order;
+    @ManyToOne
+    @JoinColumn(name = "product_id")
+    private Product product;
+    private Long productCount = 1L;
+    @Column(nullable = true)
+    private String parcelNumber;
+    @Enumerated(value = EnumType.STRING)
+    private OrderProductStatus orderProductStatus = OrderProductStatus.ORDER_PAY_STANDBY;
+
+    public enum OrderProductStatus{
+        ORDER_PAY_STANDBY("결제대기"),
+        ORDER_PAY_FINISH("결제완료"),
+        DELIVERY_PREPARE("베송 준비 중"),
+        DELIVERY_ING("배송 중"),
+        DELIVERY_COMPLETE("배송 완료");
+        @Getter
+        private final String status;
+        OrderProductStatus(String status){
+            this.status = status;
+        }
+    }
+}
+```
+ </details>
+
+ <details>
+	 <summary>Product</summary>
+	 
+```java
+@Entity
+@AllArgsConstructor
+@NoArgsConstructor
+@Setter
+@Getter
+public class Product extends Auditable {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long productId;
+    // todo: seller와 연관관계 매핑
+    private String name;
+    @Lob
+    private byte[] thumbnailImage;
+    private String thumbnailImageType;
+    @OneToMany(mappedBy = "product", fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.REMOVE})
+    private List<ProductDetailImage> productDetailImages = new ArrayList<>();
+    @Lob
+    private String productDetail;
+    private Long price;
+    private Long stock;
+    @Enumerated(value = EnumType.STRING)
+    private ProductStatus productStatus = ProductStatus.PRODUCT_ACTIVE;
+    @OneToMany(mappedBy = "product", cascade = {CascadeType.PERSIST, CascadeType.REMOVE})
+    private List<OrderProduct> orderProductList = new ArrayList<>();
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "seller_id")
+    private Seller seller;
+    public enum ProductStatus {
+        PRODUCT_ACTIVE("판매중"),
+        PRODUCT_SOLD_OUT("품절"),
+        PRODUCT_DELETE("삭제된상품");
+        @Getter
+        private String status;
+        ProductStatus(String status){
+            this.status = status;
+        }
+    }
+
+    public void addProductDetailImages(ProductDetailImage pdi){
+        this.productDetailImages.add(pdi);
+        if(pdi != null){
+            pdi.setProduct(this);
+        }
+    }
+}
+```
+ </details>
+   
+ </details>
+
+User는 여러 종류의 Product들을 골라 장바구니에 담는다. 장바구니(Cart)에 담은 각 상품들은 개수를 지정하여 Order를 생성할 수 있다. 이 과정에서 Order 속 Product의 주문량 만큼 Product의 재고량이 빠진다.
+  
+ <br>
+
+ > 주문 생성 과정중 비즈니스 로직과 쿼리최적화를 고려했을때 아래 5가지의 이슈가 존재
+
+아래 소스코드를 살펴보면 주문 생성시 여러 엔티티가 연관되어 있기는 하지만, 예상보다 많은 쿼리가 발생한다.
+
+ <details>
+	 <summary>Problem (1) 회원, 장바구니, 장바구니 속 세부 상품 쿼리가 따로따로 조회되고 있다.</summary> <br>
+
+```java
+select
+        user0_.user_id as user_id1_11_0_,
+        user0_.created_at as created_2_11_0_,
+        user0_.modified_at as modified3_11_0_,
+        user0_.address as address4_11_0_,
+        user0_.admin_id as admin_i10_11_0_,
+        user0_.email as email5_11_0_,
+        user0_.login_id as login_id6_11_0_,
+        user0_.name as name7_11_0_,
+        user0_.password as password8_11_0_,
+        user0_.seller_id as seller_11_11_0_,
+        user0_.user_status as user_sta9_11_0_ 
+    from
+        user_table user0_ 
+    where
+        user0_.user_id=?
+2024-04-10 14:11:40.703 DEBUG 9972 --- [nio-8080-exec-5] org.hibernate.SQL                        : 
+    select
+        cart0_.cart_id as cart_id1_2_,
+        cart0_.user_id as user_id2_2_ 
+    from
+        cart cart0_ 
+    left outer join
+        user_table user1_ 
+            on cart0_.user_id=user1_.user_id 
+    where
+        user1_.user_id=?
+2024-04-10 14:11:40.714 DEBUG 9972 --- [nio-8080-exec-5] org.hibernate.SQL                        : 
+    select
+        cartproduc0_.cart_product_id as cart_pro1_3_,
+        cartproduc0_.cart_id as cart_id3_3_,
+        cartproduc0_.product_id as product_4_3_,
+        cartproduc0_.product_count as product_2_3_ 
+    from
+        cart_product cartproduc0_ 
+    left outer join
+        cart cart1_ 
+            on cartproduc0_.cart_id=cart1_.cart_id 
+    where
+        cart1_.cart_id=?
+```
+ </details>
+
+ <details>
+	 <summary>Problem (2) 상품 개수만큼 상품을 조회하는 쿼리가 나온다.</summary> <br>
+
+```java
+select
+        product0_.product_id as product_1_6_0_,
+        product0_.created_at as created_2_6_0_,
+        product0_.modified_at as modified3_6_0_,
+        product0_.name as name4_6_0_,
+        product0_.price as price5_6_0_,
+        product0_.product_detail as product_6_6_0_,
+        product0_.product_status as product_7_6_0_,
+        product0_.seller_id as seller_11_6_0_,
+        product0_.stock as stock8_6_0_,
+        product0_.thumbnail_image as thumbnai9_6_0_,
+        product0_.thumbnail_image_type as thumbna10_6_0_ 
+    from
+        product product0_ 
+    where
+        product0_.product_id=?
+// 주문생성시 A상품을 N개 주문시 N번의 쿼리가 조회된다.
+```
+ </details>
+
+ <details>
+	 <summary>Problem (3) 상품의 개수만큼 Insert 쿼리가 발생함.</summary> <br>
+
+```java
+    insert 
+    into
+        order_product
+        (created_at, modified_at, order_id, order_product_status, parcel_number, product_id, product_count) 
+    values
+        (?, ?, ?, ?, ?, ?, ?)
+// 상품의 개수(P) 만큼 insert query가 발생
+```
+ </details>
+
+ <details>
+ <summary>Problem (4) 주문 속 상품 종류의 수만큼 재고 변경의 update문이 동작함</summary> <br>
+
+```java
+    update
+        product 
+    set
+        modified_at=?,
+        name=?,
+        price=?,
+        product_detail=?,
+        product_status=?,
+        seller_id=?,
+        stock=?,
+        thumbnail_image=?,
+        thumbnail_image_type=? 
+    where
+        product_id=?
+// 상품의 개수(K) 만큼 K개의 update 쿼리가 발생
+```
+ </details>
+
+ <details>
+	 <summary>Problem (5) 장바구니 delete쿼리가 장바구니 상세품목 개수만큼 나간다.</summary>
+
+```java
+    delete 
+    from
+        cart_product 
+    where
+        cart_product_id=?
+// 장바구니 속 세부 상품 종류의 수만큼 delete쿼리가 발생
+```
+ </details>
+ 
+ <strong>원인 추론</strong>
+
+ > Problem (1) : 주문 생성 로직 속의 회원, 장바구니, 세부품목은 1:N:N의 관계인데, 각각 Lazy Loading으로 설정되어 있다.
+
+ > Problem (2): N:1 의 관계인 Orderproduct(조인 테이블, N)에 해당하는 Product(1의 관계)를 단건 조회하는 과정에서 N+1 문제가 발생한다.
+
+ <details>
+ 	<summary>주문 생성 코드 수정</summary>
+
+```java
+public Order createOrder(Order order){
+        // 영속성 회원 엔티티 넣어주기
+        User findUser = userService.findVerifiedUserIncludeCart(order.getUser().getUserId());
+        order.setUserAddOrder(findUser);
+        // 장바구니 비워주기
+        emptyCart(findUser.getCart());
+
+        // 주문 생성 코드
+        List<OrderProduct> orderProducts = order.getOrderProductList().stream()
+                .map(orderProduct -> {
+//@@@@@@@@@@@@@@@@@@@@@@@@@ (1) Product를 단건 조회하는 findProduct 
+                    Product findProduct = productService.findProduct(orderProduct.getProduct().getProductId());
+                    orderProduct.setProduct(findProduct);
+                    return orderProduct;
+                })
+                .collect(Collectors.toList());
+       
+        order.setOrderProductList(orderProducts);
+
+        stockMinusCount(order);
+        Order savedOrder = orderRepository.save(order);
+        return savedOrder;
+    }
+```
+(1) 위 메서드는 주문 속의 Product의 종류만큼 DB에 단건 조회 쿼리를 생성시킨다. 개발자가 명시적으로 N+1 문제가 일어나도록 설정해버린 코드인 것이다.
+ </details>
+
+ > Problem (3), (4), (5) : 영속성 컨테이너의 Dirty checking 으로 인한 중복 쿼리 발생
+
+ Dirty checking으로 동작하는 영속성 컨테이너는 기본적으로 update, delete, insert를 단건으로 처리하므로  N개의 중복 쿼리가 발생한다.
+
+- 만약 Order에서 수백만개의 Product을 등록해서 저장한다고 가정했을때, 수백만개의 OrderProduct가 생성되어야한다. 이때 N관계의 OrderProduct를 저장하기 위해 수백만개의 단건 insert 쿼리가 동작할 것이고, 이는 성능 저하로 이어질 것이다.
+
+ <strong>조치 방안 검토</strong>
+
+ > Problem (1) : fetch join을 활용하여 필요한 부분을 한번에 모두 조회해버린다.
+
+ **`1:N` 의 `회원: 장바구니` 는  fetch join을 활용하여 1(회원)을 조회할때 N(장바구니종류)을 한번에 조회해버리자.** 그리고 장바구니세부품목(CartProduct)는 요청시 해당 정보가 제공되므로 조회 대상에서 제외한다. 
+ 
+ 이를 활용하면 현재는 미구현이지만, 회원이 여러 종류의 장바구니를 가지는 경우 모든 장바구니를 한번에 조회해올 수 있다. 
+ 
+ <details>
+	<summary>fetch join 소스코드</summary>
+
+```java
+public interface UserRepository extends JpaRepository<User, Long> {
+
+    @Query("select u from User u join fetch u.cart where u.userId = :userId")
+    Optional<User> findByIdIncludeCart(@Param("userId") Long userId);
+```
+ </details>
+
+ <details>
+	<summary>수정후 쿼리</summary>
+
+```java
+    select
+        user0_.user_id as user_id1_12_0_,
+        cart1_.cart_id as cart_id1_2_1_,
+        user0_.created_at as created_2_12_0_,
+        user0_.modified_at as modified3_12_0_,
+        user0_.address as address4_12_0_,
+        user0_.admin_id as admin_i10_12_0_,
+        user0_.email as email5_12_0_,
+        user0_.login_id as login_id6_12_0_,
+        user0_.name as name7_12_0_,
+        user0_.password as password8_12_0_,
+        user0_.seller_id as seller_11_12_0_,
+        user0_.user_status as user_sta9_12_0_,
+        cart1_.user_id as user_id2_2_1_,
+        cart1_.user_id as user_id2_2_0__,
+        cart1_.cart_id as cart_id1_2_0__ 
+    from
+        user_table user0_ 
+    inner join
+        cart cart1_ 
+            on user0_.user_id=cart1_.user_id 
+    where
+        user0_.user_id=?
+```
+ </details>
+ 
+
+ > Problem (2) : 쿼리메소드 IN 을 활용하여 요청한 주문 속의 Product를 모두 가져온다.
+
+비즈니스 로직상, 요청메시지를 통해 주문 속의 여러 Product의 Id들을 알 수 있다. 그 Id들을 에 해당하는 Product를 in절을 통해 한번에 조회하고, OrderProduct에 적절히 매핑하고 Order를 생성해주자.
+
+ <details>
+	<summary>IN 절 쿼리가 생성되도록 수정</summary>
+
+`createOrder()` 로직
+
+```java
+public Order createOrder(Order order){
+        // 영속성 회원 엔티티 넣어주기
+        User findUser = userService.findVerifiedUserIncludeCart(order.getUser().getUserId());
+        order.setUserAddOrder(findUser);
+        // 장바구니 비워주기
+        emptyCart(findUser.getCart());
+
+        // 주문 상품 생성을 위한 상품 조회
+        List<Long> productIds = order.getOrderProductList().stream()
+                .map(orderProduct -> orderProduct.getProduct().getProductId())
+                .collect(Collectors.toList());
+// @@@@@@@@(1) 메서드 변경
+        List<Product> products = productService.findProductsIds(productIds);
+        Map<Long, Product> productMap = products.stream()
+                .collect(Collectors.toMap(Product::getProductId
+                        , Function.identity()));
+        // OrderProduct에 조회된 상품 정보 매핑
+        for (OrderProduct orderProduct : order.getOrderProductList()) {
+            Product product = productMap.get(orderProduct.getProduct().getProductId());
+            if (product != null) {
+                orderProduct.setProduct(product);
+            }
+        }
+
+        stockMinusCount(order);
+        Order savedOrder = orderRepository.save(order);
+        return savedOrder;
+    }
+```
+
+`productService.findProductsIds`
+
+```java
+    public List<Product> findProductsIds(List<Long> productIds){
+        List<Product> productsByIdIn = productRepository.findProductsByProductIdIn(productIds);
+        return productsByIdIn;
+    } 
+```
+
+`productRepository.findProductsByProductIdIn`
+:Spring Data JPA를 통해 IN 절을 활용하는 쿼리메서드 생성**
+
+```java
+public interface ProductRepository extends JpaRepository<Product, Long> {
+    List<Product> findProductsByProductIdIn(List<Long> productIds);
+}
+```
+ </details>
+
+ > Problem (3), (4): N insert, update 부분을 JDBC Template의 batch Process로 처리한다.
+
+기본적으로 Hibernate 기반의 JPA 기술들은(변경감지, Spring Data JPA) 단일 query로 처리 한다. 이를 막기위해 JPA 기술로 배치 프로세싱을 적용하는 것은 수많은 작업이 들어간다. 차라리 ORM 프레임워크를 조금 포기하더라도, DB에 batch query 를 직접 날리도록 지시하여 더 쉽게 쿼리 성능 최적화를 이룰 수 있었다.
+(`(3)`,`(4)` 해결방안이 같으므로 여기서는 (3)의 해결 모습만 다루도록 한다.)
+
+ <details>
+	 <summary>insert 중복 쿼리 문제 해결</summary>
+
+사실 주문 속 상품정도는 대용량 데이터라고 보기 힘들지만, 미래 대용량 데이터를 다룰 일이 있을 것 같아서 가정해보자. 해당 이슈는 JDBC Template이 사용가능한 커스텀 Repository를 생성함으로써 Batch insert를 가능하도록 만들었다.
+
+ <details>
+	 <summary>커스텀 Repository 를 통한 JDBC Templete 사용</summary>
+
+`OrderProductRepositoryCustom` (커스텀 Repository interface)
+
+```java
+package com.k5.modudogcat.domain.order.repository;
+
+import com.k5.modudogcat.domain.order.entity.OrderProduct;
+
+import java.util.List;
+
+public interface OrderProductRepositoryCustom {
+    public List<OrderProduct> batchSaveOrderProducts(List<OrderProduct> orderProducts, Long orderId);
+}
+```
+
+커스텀 Repository 구현체
+
+```java
+@RequiredArgsConstructor
+public class OrderProductRepositoryCustomImpl implements OrderProductRepositoryCustom {
+    private final JdbcTemplate jdbcTemplate;
+
+    public List<OrderProduct> batchSaveOrderProducts(List<OrderProduct> orderProducts, Long orderId) {
+        // Identity 전략 - pk 제외
+        // 나머지 전략시 - pk 포함
+        String sql = "INSERT INTO order_product (order_product_status, parcel_number, product_count, order_id, product_id, created_at, modified_at)" +
+                " VALUES (?, ?, ?, ?, ? ,? ,?)";
+        this.jdbcTemplate.batchUpdate(sql, new BatchPreparedStatementSetter() {
+            public void setValues(PreparedStatement ps, int i) throws SQLException {
+                // i번째 객체를 가져온 후, DB에 삽입한다.
+                OrderProduct orderProduct = orderProducts.get(i);
+                ps.setString(1, orderProduct.getOrderProductStatus().name());
+                ps.setString(2, orderProduct.getParcelNumber());
+                ps.setLong(3, orderProduct.getProductCount());
+                ps.setLong(4, orderId);
+                ps.setLong(5, orderProduct.getProduct().getProductId());
+                Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+                ps.setTimestamp(6, timestamp);
+                ps.setTimestamp(7, timestamp);
+
+                orderProduct.setCreatedAt(LocalDateTime.now());
+                orderProduct.setModifiedAt(LocalDateTime.now());
+            }
+
+            public int getBatchSize() {
+                return orderProducts.size();
+            }
+        });
+
+        return orderProducts;
+    }
+}
+
+```
+
+`OrderProductRepository`-확장 완료
+
+```java
+public interface OrderProductRepository extends JpaRepository<OrderProduct, Long> , OrderProductRepositoryCustom{
+    Page<OrderProduct> findByProductSellerSellerId(Long sellerId, Pageable pageable);
+}
+```
+Spring Data JPA 와 OrderProductRepositoryCustomImpl 메서드 사용이 가능
+
+ </details>
+
+ <details>
+	 <summary>커스텀 레포지토리 사용 및 Order 수정</summary>
+
+```java
+public Order createOrder(Order order){
+        //... 주문 생성 로직
+
+        // @@@@@@@@@@@@(1)JDBC 저장 방식
+        List<OrderProduct> orderProducts = orderProductRepository.batchSaveOrderProducts(order.getOrderProductList(), savedOrder.getOrderId());
+        savedOrder.setOrderProductList(orderProducts);
+        return savedOrder;
+    }
+```
+영속성 컨텍스트의 관리를 받도록 JPA로 Order를 저장후, OrderId를 가져온다. 해당 id를 이용하여 JDBC Templates의 Batch insert 쿼리를 생성시킨다.
+ 
+`OrderProduct`
+
+```java
+  @OneToMany(mappedBy = "order", cascade = {CascadeType.REMOVE}, orphanRemoval = true)
+  @BatchSize(size = 12)
+  private List<OrderProduct> orderProductList = new ArrayList<>();
+```
+Order 저장시, JPA로 인해 OrderProduct가 저장되지 않도록 Cascade.Persist를 제거시켰다.
+
+ </details>
+
+ <details>
+	 <summary>수정 후, 결과 쿼리</summary>
+
+JPA 에서 동작하지 않기에 중복된 단건 쿼리를 출력하지 않는다. 대신 배치 처리를 통해 아래의 방식으로 쿼리가 동작한다.
+
+```java
+INSERT INTO table1 (col1, col2) VALUES
+(val11, val12),
+(val21, val22),
+(val31, val32);
+```
+ </details>
+ 
+ </details>
+
+ > Problem (5) : 일괄 처리로 되는 경우, batch process 대신 @Modifying 의 bulk 연산으로 처리한다.
+
+비즈니스 로직상 주문 상품시 회원이 가진 장바구니의 장바구니 세부품목을 초기화해야한다. 
+
+`Problem(1)`에서 회원과 장바구니를 fetch join으로 조회했으므로, 우리는 회원이 가진 장바구니들을 알 수 있고, 그 장바구니들의 ID를 이용할 수 있다. 
+
+`Problem(3)`의 insert의 경우, 어느 정보들을 넣어주어야하는지 알 수 없었지만 delete 경우는 삭제 적용 대상을 알 수 있고, 삭제라는 일괄적으로 같은 연산을 적용한다. 이런 경우, 굳이 JDBC를 쓰기보다는 JPA의 bulk 연산을 통해 일괄 처리가 가능하다.
+
+ <details>
+	<summary>bulk 연산을 Repository에 추가후 적용</summary>
+
+`cartProductRepository.deleteAllByCartIds()`
+:@Modifying을 통해 bulk delete 처리를 해주었다.
+
+```java
+@Modifying(clearAutomatically = true) // em.clear()
+@Query("delete CartProduct cp where cp.cart.cartId in :cartIds")
+void deleteAllByCartIds(@Param("cartIds") List<Long> cartIds);
+```
+
+`CartService.removeCartProductsByCarts()`
+```java
+public void removeCartProductsByCarts(List<Cart> carts){
+        List<Long> cartIds = carts.stream()
+                .map(cart -> cart.getCartId())
+                .collect(Collectors.toList());
+//@@@@(1)        cartProductRepository.deleteAllByCartCartIdIn(cartIds);
+        cartProductRepository.deleteAllByCartIds(cartIds);
+    }
+```
+(1) 쿼리메소드가 아닌 bulk 연산의 메소드를 적용시킨다.
+ </details>
+ 
+</details>
+
+<details>
 <summary><b>그 외 트러블 슈팅</b></summary><br>
 	
 <details>
