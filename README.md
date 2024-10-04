@@ -251,7 +251,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
  	
 </details>
 
-**그 외 트러블 슈팅** </br>
+<details>
+<summary><b>그 외 트러블 슈팅</b></summary><br>
+	
 <details>
   <summary>1. Update 기능 리팩토링하기(merge 방식 → DirtyChecking 방식) </summary>
   <strong>문제정의</strong>
@@ -852,6 +854,8 @@ DB 시각으로 봐보면 위 설정의 이유를 알 수 있다. 주인이 아�
     where
         user0_.user_id=?
 ```
+</details>
+
 </details>
 
 </details>
