@@ -81,10 +81,179 @@
 
 
 ### 트러블 슈팅 경험
-**(1) 중요 트러블 슈팅** </br>
-**(2) 그 외 트러블 슈팅** </br>
+**중요 트러블 슈팅** </br>
+
 <details>
-  <summary>(1) Update 기능 리팩토링하기(merge 방식 → DirtyChecking 방식) </summary>
+ <summary>1. Spring Security 인증 과정에서 영속성 컨텍스트는 주로 UserDetailsService가 사용자 정보를 조회할 때 사용되지만, 사용자 정보가 반환된 후의 인증 과정에서는 영속성 컨텍스트를 벗어난다.</summary>
+ 
+ <strong>이슈 정의</strong>
+ 
+ 회원(USER)의 조회 쿼리에서 ROLE 정보가 조회되지 않게 하고 싶었다. 그래서 권한 정보(Role)을 Lazy Loading으로 설정했는데, 로그인 기능에서LazyinitializationException 이 발생한다.
+ 
+ <strong>사실 수집</strong>
+ 
+ <details>
+ <summary>User 엔티티</summary>
+ 
+```java
+package com.k5.modudogcat.domain.user.entity;
+
+@Entity(name = "user_table")
+@AllArgsConstructor
+@NoArgsConstructor
+@Setter
+@Getter
+public class User extends Auditable {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long userId;
+    ...
+    @ElementCollection(fetch = FetchType.EAGER) // 로그인을 위해 Eager
+    private List<String> roles = new ArrayList<>();
+    	 
+ ```
+User 와 Role 엔티티는 1:N의 관계이다. 따로 엔티티 전용 클래스를 생성하지 않고 위처럼     @ElementCollection 애노테이션을 활용하였다.
+ </details>
+ 
+ <details>
+ <summary>로그인 기능시 에러 로그</summary>
+
+ ```java
+org.hibernate.LazyInitializationException: failed to lazily initialize a collection of role: com.k5.modudogcat.domain.user.entity.User.roles, could not initialize proxy - no Session
+	at org.hibernate.collection.internal.AbstractPersistentCollection.throwLazyInitializationException(AbstractPersistentCollection.java:614) ~[hibernate-core-5.6.15.Final.jar:5.6.15.Final]
+	at org.hibernate.collection.internal.AbstractPersistentCollection.withTemporarySessionIfNeeded(AbstractPersistentCollection.java:218) ~[hibernate-core-5.6.15.Final.jar:5.6.15.Final]
+	at org.hibernate.collection.internal.AbstractPersistentCollection.initialize(AbstractPersistentCollection.java:591) ~[hibernate-core-5.6.15.Final.jar:5.6.15.Final]
+	at org.hibernate.collection.internal.AbstractPersistentCollection.read(AbstractPersistentCollection.java:149) ~[hibernate-core-5.6.15.Final.jar:5.6.15.Final]
+	at org.hibernate.collection.internal.PersistentBag.iterator(PersistentBag.java:387) ~[hibernate-core-5.6.15.Final.jar:5.6.15.Final]
+	at java.base/java.util.Spliterators$IteratorSpliterator.estimateSize(Spliterators.java:1821) ~[na:na]
+	at java.base/java.util.Spliterator.getExactSizeIfKnown(Spliterator.java:408) ~[na:na]
+	at java.base/java.util.stream.AbstractPipeline.copyInto(AbstractPipeline.java:483) ~[na:na]
+	at java.base/java.util.stream.AbstractPipeline.wrapAndCopyInto(AbstractPipeline.java:474) ~[na:na]
+	at java.base/java.util.stream.ReduceOps$ReduceOp.evaluateSequential(ReduceOps.java:913) ~[na:na]
+	at java.base/java.util.stream.AbstractPipeline.evaluate(AbstractPipeline.java:234) ~[na:na]
+	at java.base/java.util.stream.ReferencePipeline.collect(ReferencePipeline.java:578) ~[na:na]
+	at com.k5.modudogcat.security.util.CustomAuthorityUtils.createAuthorities(CustomAuthorityUtils.java:26) ~[main/:na]
+	at com.k5.modudogcat.security.userdetails.UserDetailsServiceImpl$UserDetailsImpl.getAuthorities(UserDetailsServiceImpl.java:41) ~[main/:na]
+ ```
+ </details>
+
+ <strong>원인 추론</strong>
+ 
+ <details>
+	 <summary>UserDetailService 와 UserDetail은 영속성 컨테이너의 범위에 속하지 않을 수 있다.</summary>
+
+`UserDetailsService`
+
+```java
+@RequiredArgsConstructor
+@Component
+public class UserDetailsServiceImpl implements UserDetailsService {
+    private final UserService userService;
+    private final CustomAuthorityUtils customAuthorityUtils;
+    
+    @Override
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        User verifiedUserByLoginId = userService.findVerifiedUserByLoginId(username);
+
+        return new UserDetailsImpl(verifiedUserByLoginId);
+    }
+```
+`UserDetailsService`는 User엔티티의 정보를 받아온 후, 검증에 사용될 `UserDetails` 를 생성하기 위한 인터페이스이다.
+
+위 과정은`UserDetailsServiceImpl.loadUserByUsername()` 구현체의 메서드를 통해 일어나며, 
+
+생성된 `UserDetailsImpl` 는 Security framework에 따라 로그인 기능을 동작하는 과정에서 User 정보와 권한 정보(Role) 를 사용한다.
+
+현재까지 생성된 `UserDetailsImpl`에 User의 정보가 들어가는데 이때 권한 정보(Role)는 지연로딩이므로 들어가지 않는다. 일반적으로 생각했을때, 이후 검증 단계에서 User의 Role을 사용하면 지연로딩이 동작하여 Role 조회쿼리가 동작할 것이라고 생각할 수 있다.
+
+<img src="https://github.com/steadykyu/modudogcat_refactoring/blob/main/sampleImage/studySample/security_userDetails.png" alt="userDetail 생성과정">
+
+하지만 보통 `UserDetailsImpl` 생성 이후, 데이터베이스와의 상호작용이 없으므로 위 그림의 `(7)` 이후로는 영속성 컨텍스트의 범위에서 제외되고 그렇기 때문에 지연로딩(Lazy loading)이 동작하지 않아 Role 정보를 가져올 수 없게 된다. 그 결과로 `LazyinitializationException`이 발생하는 것이다.
+
+ </details>
+
+ <strong>조치 방안 검토</strong>
+ <details>
+	 <summary>UserDetailImpl 생성 과정에 fetch join을 통해 ROLE 정보를 넣어주자.</summary>
+
+  핵심적으로 영속성 컨테이너의 범위에 있는  `loadUserByUsername()`에서 User 정보를 가져오는 `verifiedUserByLoginId` 에서 Fetch join을 통해 Role 정보가 담기도록 쿼리가 동작하도록 만들면 된다.
+
+`loadUserByUsername`
+
+```java
+    @Override
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        User verifiedUserByLoginId = userService.findVerifiedUserByLoginId(username);
+
+        return new UserDetailsImpl(verifiedUserByLoginId);
+    }
+```
+
+`userService.findVerifiedUserByLoginId()`
+
+```java
+    public User findVerifiedUserByLoginId(String loginId){
+        User findUser = userRepository.findByLoginId(loginId)
+                .orElseThrow(() -> {
+                    throw new BusinessLogicException(ExceptionCode.USER_NOT_FOUND);
+                });
+
+        verifiedActiveUser(findUser);
+        return findUser;
+    }
+```
+Repository 계층의 findByLoginId()를 호출한다.
+
+`UserRepository.findByLoginId()`
+
+```java
+public interface UserRepository extends JpaRepository<User, Long> {
+//    Optional<User> findByLoginId(String LoginId);
+    
+    @Query("select u from user_table u join fetch u.roles where u.loginId = :loginId")
+    Optional<User> findByLoginId(@Param("loginId") String LoginId);
+```
+이전에는 Spring data JPA를 통해 쿼리메소드를 통해 자동으로 쿼리를 생성하고 있었다.
+
+하지만 이제 fetch Join을 통해 명시적으로 권한 정보를 조회시켰다.
+
+ </details>
+
+ <strong>결과 관찰</strong>
+ 
+ <details>
+	 <summary>로그인 기능시 쿼리 로그</summary>
+	 
+```java
+    select
+        user0_.user_id as user_id1_11_,
+        user0_.created_at as created_2_11_,
+        user0_.modified_at as modified3_11_,
+        user0_.address as address4_11_,
+        user0_.admin_id as admin_i10_11_,
+        user0_.email as email5_11_,
+        user0_.login_id as login_id6_11_,
+        user0_.name as name7_11_,
+        user0_.password as password8_11_,
+        user0_.seller_id as seller_11_11_,
+        user0_.user_status as user_sta9_11_,
+        roles1_.user_table_user_id as user_tab1_12_0__,
+        roles1_.roles as roles2_12_0__ 
+    from
+        user_table user0_ 
+    inner join
+        user_table_roles roles1_ 
+            on user0_.user_id=roles1_.user_table_user_id 
+    where
+        user0_.login_id=?
+```
+ </details>
+ 	
+</details>
+
+**그 외 트러블 슈팅** </br>
+<details>
+  <summary>1. Update 기능 리팩토링하기(merge 방식 → DirtyChecking 방식) </summary>
   <strong>문제정의</strong>
   
   이전 수정 기능의 코드들을 살펴보겠습니다.
@@ -161,7 +330,7 @@ Hibernate:
     
 </details>
 <details>
-  <summary>(2) 페이징시 AWS 서버 프리징 이슈 - 물리적 해결 </summary>
+  <summary>2. 페이징시 AWS 서버 프리징 이슈 - 물리적 해결 </summary>
   <strong>이슈 정의</strong>
   
   프로젝트의 홈페이지는 전체상품을 페이징하여 가져오는 작업이다. 해당 작업시 CPU를 비정상적으로 사용하는 모습을 발견했다.
@@ -187,7 +356,7 @@ Hibernate:
   결과적으로 이제 서버가 터지지 않고 Spring 프로젝트를 빌드할 수 있고, 페이지네이션에도 문제가 발생하지 않았다.
 </details>
 <details>
-  <summary>(3) 페이징시 AWS 프리징 이슈 해결 - select query 성능 최적화 하기</summary>
+  <summary>3. 페이징시 AWS 프리징 이슈 해결 - select query 성능 최적화 하기</summary>
   <strong>이슈 정의</strong>
   
   홈페이지가 열릴때는 여러 Product 를 조회하도록 페이지네이션 기능이 동작한다. 그런데 해당 페이지를 열때 많은 시간이 걸리는 것을 발견했다.
@@ -559,7 +728,7 @@ public class Product extends Auditable {
   ```
 </details>
 <details>
-  <summary>(4) 양방향 @OneToOne 관계에서 Lazy Loading이 동작하지 않는 이슈 해결</summary>
+  <summary>4. 양방향 @OneToOne 관계에서 Lazy Loading이 동작하지 않는 이슈 해결</summary>
   <strong>이슈 정의</strong>
   
   장바구니(Cart) 엔티티는 회원 엔티티와 일대일 관계이고, 장바구니를 연관관계 주인으로 설정해 두었다. 그런데 @OneToOne 양방향 매핑속에서 주인이 아닌 쪽(여기서는 회원)의 조회 쿼리를 날리는 기능을 동작시키니 장바구니 정보가 필요없음에도 장바구니 엔티티를 지연로딩이 아닌 즉시 로딩을 해오고 있다.
