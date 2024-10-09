@@ -25,7 +25,7 @@
 ### 핵심 기능
 <blockquote>
 <details>
-  <summary>(1) CSR 아키텍처를 채택하여 RESTful API 호출을 통해 통신하는 쇼핑몰 백엔드 서비스를 설계 및 구현</summary>
+  <summary>1. CSR 아키텍처를 채택하여 RESTful API 호출을 통해 통신하는 쇼핑몰 백엔드 서비스를 설계 및 구현</summary>
   <p> 
     <img src="https://github.com/steadykyu/modudogcat_refactoring/blob/main/sampleImage/studySample/csr.png" alt="CSR 아키텍처">
   </p>
@@ -37,9 +37,13 @@
     다만 회원 도메인의 경우 로그인시 JWT 토큰을 이용해 개별 회원 리소스를 유추해낼 수 있고 회원의 PK를 보여주지 않는게 보안적으로 좋다고 생각했습니다. 그러므로 <a href = "https://github.com/steadykyu/modudogcat_refactoring/blob/1ef06b737589db917ec4ff77ddb10bbda566d15d/src/main/java/com/k5/modudogcat/domain/user/controller/UserController.java#L32-L75">
     회원 Controller</a> 의 URL로 CRUD를 구현했습니다.
   </p>
+
+ ---
+ 
 </details>
+
 <details> 
-  <summary>(2) Spring JPA를 이용한 WAS 개발 및 쿼리 성능 최적화</summary>
+  <summary>2. Spring JPA를 이용한 WAS 개발 및 쿼리 성능 최적화</summary>
   <p>
    <img src="https://github.com/steadykyu/modudogcat_refactoring/blob/main/sampleImage/studySample/JPA_architecture.png" alt="JPA 아키텍처">
   </p>
@@ -70,17 +74,28 @@
   <p>
     기존 엔티티 생성전략인 GenerationType.IDENTITY 을 유지하고, Batch Process를 구현하기 위해 <a href=https://github.com/steadykyu/modudogcat_refactoring/blob/cb9746bb7f0c301a038000eb4ce9e100cc6fbbee/src/main/java/com/k5/modudogcat/domain/order/repository/OrderProductRepositoryCustomImpl.java#L18-L45>OrderProductRepositoryCustomImpl</a> Spring Data JPA를 확장시키고, JDBC Template을 사용했습니다. 
   </p>
+
+ ---
+ 
 </details>
+
 <details>
-  <summary>(3) AWS S3, EC2, RDS를 이용한 3-tier Architecture 기반의 서비스 구현</summary>
+  <summary>3. AWS S3, EC2, RDS를 이용한 3-tier Architecture 기반의 서비스 구현</summary>
   <p>
     <img src="https://github.com/steadykyu/modudogcat_refactoring/blob/main/sampleImage/studySample/aws_architecture.png" alt="AWS 아키텍처">
   </p>
+
+ ---
+ 
 </details>
+
 <details>
-  <summary>(4) Spring Security를 이용한 로그인 기능 개발</summary>
+  <summary>4. Spring Security를 이용한 로그인 기능 개발</summary>
+
+---
 
 </details>
+
 </blockquote>
 
 ### 트러블 슈팅 경험
@@ -278,8 +293,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
  <strong>사실 수집</strong>
 
  <blockquote>
-	 
- > 주문 생성 기본 로직
+
+  <blockquote>
+
+  <strong>주문 생성 기본 로직</strong>
 
  <details>
 	 <summary>주문 생성 메서드</summary>
@@ -537,9 +554,11 @@ public class Product extends Auditable {
 
 User는 여러 종류의 Product들을 골라 장바구니에 담는다. 장바구니(Cart)에 담은 각 상품들은 개수를 지정하여 Order를 생성할 수 있다. 이 과정에서 Order 속 Product의 주문량 만큼 Product의 재고량이 빠진다.
   
- <br>
+ </blockquote>
 
- > 주문 생성 과정중 비즈니스 로직과 쿼리최적화를 고려했을때 아래 5가지의 이슈가 존재
+<blockquote>
+
+<strong> 주문 생성 과정중 비즈니스 로직과 쿼리최적화를 고려했을때 아래 5가지의 이슈가 존재 </strong>
 
 아래 소스코드를 살펴보면 주문 생성시 여러 엔티티가 연관되어 있기는 하지만, 예상보다 많은 쿼리가 발생한다.
 
@@ -662,18 +681,24 @@ select
 // 장바구니 속 세부 상품 종류의 수만큼 delete쿼리가 발생
 ```
  </details>
+
+  </blockquote>
+ 
  </blockquote>
  
  <strong>원인 추론</strong>
  
  <blockquote>
-	 
- > Problem (1) : 주문 생성 로직 속의 회원, 장바구니, 세부품목은 1:N:N의 관계인데, 각각 Lazy Loading으로 설정되어 있다.
 
- > Problem (2): N:1 의 관계인 Orderproduct(조인 테이블, N)에 해당하는 Product(1의 관계)를 단건 조회하는 과정에서 N+1 문제가 발생한다.
+  <blockquote>
+ <strong>Problem (1) : 주문 생성 로직 속의 회원, 장바구니, 세부품목은 1:N:N의 관계인데, 각각 Lazy Loading으로 설정되어 있다.</strong>
+  </blockquote>
+
+  <blockquote>
+ <strong>Problem (2): N:1 의 관계인 Orderproduct(조인 테이블, N)에 해당하는 Product(1의 관계)를 단건 조회하는 과정에서 N+1 문제가 발생한다.</strong>
 
  <details>
- 	<summary>주문 생성 코드 수정</summary>
+ 	<summary>주문 생성 로직 코드</summary>
 
 ```java
 public Order createOrder(Order order){
@@ -702,12 +727,16 @@ public Order createOrder(Order order){
 ```
 (1) 위 메서드는 주문 속의 Product의 종류만큼 DB에 단건 조회 쿼리를 생성시킨다. 개발자가 명시적으로 N+1 문제가 일어나도록 설정해버린 코드인 것이다.
  </details>
-
- > Problem (3), (4), (5) : 영속성 컨테이너의 Dirty checking 으로 인한 중복 쿼리 발생
+  </blockquote>
+  
+ <blockquote>
+<strong>Problem (3), (4), (5) : 영속성 컨테이너의 Dirty checking 으로 인한 중복 쿼리 발생</strong>
 
  Dirty checking으로 동작하는 영속성 컨테이너는 기본적으로 update, delete, insert를 단건으로 처리하므로  N개의 중복 쿼리가 발생한다.
 
-- 만약 Order에서 수백만개의 Product을 등록해서 저장한다고 가정했을때, 수백만개의 OrderProduct가 생성되어야한다. 이때 N관계의 OrderProduct를 저장하기 위해 수백만개의 단건 insert 쿼리가 동작할 것이고, 이는 성능 저하로 이어질 것이다.
+(만약 Order에서 수백만개의 Product을 등록해서 저장한다고 가정했을때, 수백만개의 OrderProduct가 생성되어야한다. 이때 N관계의 OrderProduct를 저장하기 위해 수백만개의 단건 insert 쿼리가 동작할 것이고, 이는 성능 저하로 이어질 것이다.)
+
+  </blockquote>
 
 </blockquote>
 
@@ -715,7 +744,9 @@ public Order createOrder(Order order){
 
 <blockquote>
 
- > Problem (1) : fetch join을 활용하여 필요한 부분을 한번에 모두 조회해버린다.
+  <blockquote>
+ 
+<strong>Problem (1) : fetch join을 활용하여 필요한 부분을 한번에 모두 조회해버린다.</strong>
 
  **`1:N` 의 `회원: 장바구니` 는  fetch join을 활용하여 1(회원)을 조회할때 N(장바구니종류)을 한번에 조회해버리자.** 그리고 장바구니세부품목(CartProduct)는 요청시 해당 정보가 제공되므로 조회 대상에서 제외한다. 
  
@@ -761,9 +792,12 @@ public interface UserRepository extends JpaRepository<User, Long> {
         user0_.user_id=?
 ```
  </details>
- 
 
- > Problem (2) : 쿼리메소드 IN 을 활용하여 요청한 주문 속의 Product를 모두 가져온다.
+ </blockquote>
+
+<blockquote>
+	
+<strong>Problem (2) : 쿼리메소드 IN 을 활용하여 요청한 주문 속의 Product를 모두 가져온다.</strong>
 
 비즈니스 로직상, 요청메시지를 통해 주문 속의 여러 Product의 Id들을 알 수 있다. 그 Id들을 에 해당하는 Product를 in절을 통해 한번에 조회하고, OrderProduct에 적절히 매핑하고 Order를 생성해주자.
 
@@ -822,7 +856,11 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 ```
  </details>
 
- > Problem (3), (4): N insert, update 부분을 JDBC Template의 batch Process로 처리한다.
+  </blockquote>
+
+  <blockquote>
+
+<strong>Problem (3), (4): N insert, update 부분을 JDBC Template의 batch Process로 처리한다.</strong>
 
 기본적으로 Hibernate 기반의 JPA 기술들은(변경감지, Spring Data JPA) 단일 query로 처리 한다. 이를 막기위해 JPA 기술로 배치 프로세싱을 적용하는 것은 수많은 작업이 들어간다. 차라리 ORM 프레임워크를 조금 포기하더라도, DB에 batch query 를 직접 날리도록 지시하여 더 쉽게 쿼리 성능 최적화를 이룰 수 있었다.
 (`(3)`,`(4)` 해결방안이 같으므로 여기서는 (3)의 해결 모습만 다루도록 한다.)
@@ -941,7 +979,10 @@ INSERT INTO table1 (col1, col2) VALUES
  
  </details>
 
- > Problem (5) : 일괄 처리로 되는 경우, batch process 대신 @Modifying 의 bulk 연산으로 처리한다.
+  </blockquote>
+
+  <blockquote>
+<strong>Problem (5) : 일괄 처리로 되는 경우, batch process 대신 @Modifying 의 bulk 연산으로 처리한다.</strong>
 
 비즈니스 로직상 주문 상품시 회원이 가진 장바구니의 장바구니 세부품목을 초기화해야한다. 
 
@@ -974,8 +1015,10 @@ public void removeCartProductsByCarts(List<Cart> carts){
 (1) 쿼리메소드가 아닌 bulk 연산의 메소드를 적용시킨다.
 
  </details>
+   
+   <blockquote>
  
- </blockquote>
+   </blockquote>
  
 </details>
 
@@ -1139,8 +1182,9 @@ AWS 프리티어에서 제공하는 t2.micro(CPU)는 CPU 크레딧이 라는 개
   <blockquote>
   
 이전 해당 코드를 작성한 백엔드 개발자와의 소통 부족으로 적절하지 않은 정보들이 응답메시지와 로그에 담기고 있었다. 
-  
-  > 문제1) 페이지마다 같은 내용의 중복 쿼리 내용의 로그가 발생하여 성능을 망가트리고 있다.
+
+  <blockquote>
+<strong>문제 1) 페이지마다 같은 내용의 중복 쿼리 내용의 로그가 발생하여 성능을 망가트리고 있다.</strong>
   
   <details>
   <summary>문제1 로그</summary>
@@ -1187,8 +1231,10 @@ AWS 프리티어에서 제공하는 t2.micro(CPU)는 CPU 크레딧이 라는 개
         ?
   ```
   </details>
+  </blockquote>
 
-  > 문제2) 기능에 필요없는 연관관계의 엔티티를 조회하며 성능을 망가트리고 있다.
+  <blockquote>
+<strong>문제 2) 기능에 필요없는 연관관계의 엔티티를 조회하며 성능을 망가트리고 있다.</strong>
   <details>
   <summary>문제2 로그</summary>
   ```java
@@ -1327,7 +1373,10 @@ AWS 프리티어에서 제공하는 t2.micro(CPU)는 CPU 크레딧이 라는 개
 
   -> 연관관계 엔티티간의 CasCade, LazyLoading, EagerLoading을 조사하자.
 
-  > 문제 3) 기능에 필요없는 연관관계의 엔티티를 조회하며 성능을 망가트리고 있다.
+  </blockquote>
+
+<blockquote>
+<strong>문제 3) 기능에 필요없는 연관관계의 엔티티를 조회하며 성능을 망가트리고 있다.</strong>
   <details>
     <summary>문제3 로그</summary>
     ```java
@@ -1351,7 +1400,10 @@ Size 만큼  N번 반복!!
 
   -> 연관관계 엔티티간의 CasCade, LazyLoading, EagerLoading을 조사하자.
 
-  > 문제4) 기능에 필요없는 연관관계의 엔티티를 조회하며 성능을 망가트리고 있다.
+</blockquote>
+
+<blockquote>
+<strong>문제4) 기능에 필요없는 연관관계의 엔티티를 조회하며 성능을 망가트리고 있다.</strong>
 
   <details>
     <summary>문제 4 로그</summary>
@@ -1410,6 +1462,8 @@ Size 만큼  N번 반복!!
   상품 속 개별 썸네일 파일을 서버에 요청할때, 연관관계의 엔티티인 Product, Seller, UserInfo등 해당 기능에 쓸모 없는 엔티티 정보들이 조인하여 가져오는 쿼리를 날리고 있다.
   
   -> 연관관계 엔티티간의 CasCade, LazyLoading, EagerLoading을 조사하자.
+
+  <blockquote>
 
   </blockquote>
 
@@ -1687,15 +1741,17 @@ DB 시각으로 봐보면 위 설정의 이유를 알 수 있다. 주인이 아�
   </p>
 </details>
 <details>
-  <summary>2. front 분들과 소통하며 Back과 API 통신을 기반으로 동작하는 SPA 를 개발하고, 이 과정에서 프론트 지식을 배울 수 있었다.</summary>
-  <p style="padding-left: 20px;">
-    </br>
-    프론트엔드 쪽과 통신하면서 서로 간 알고 있는 부분이 달라 대화가 잘 되지 않는 것을 발견 할수 있었습니다. 
-    예를 들어 어떤 형식으로 보내줘야만 프론트쪽에서 편하게 데이터를 이용할 수 있는지, 네트워크 통신과정에서 에러가 발생했는데 누구의 에러인지 모르는 등과 같은 이슈가 발생했었습니다. </br>
-  </br>
-  이 과정들을 해결하기 위해 점심시간마다 정기적인 회의를 가지고, 각자의 문제를 공유하거나 기능들이 어떻게 동작해주는지 설명해주는 시간을 가졌습니다.
-  이를 통해 Json 을 보내주면 프론트 쪽에서 객체로 바꾸어 페이지의 여러곳에서 사용한다는 점이나 웹과 WAS의 전체적인 아키텍처가 어떻게 동작하는지를 이해할 수 있었습니다.</br>
-  </p>
+  <summary>2. Back과 API 통신을 기반으로 동작하는 SPA(Single Page Application) 의 개발 경험을 얻었다. </summary>
+</br>
+처음에 프론트쪽 지식이 전무하여, 소통 과정에서 대화가 원할하게 되지 않았습니다.
+예를 들어 프론트쪽에서 편하게 데이터를 이용하면서 쿼리를 최적화하려면 어떤 형식으로, 어떤 범위의 데이터를 보내주어야 하는지 고려하는 문제. 네트워크 통신과정에서 에러가 발생시 어느쪽의 에러인지 알수 없는 문제 등이 있었습니다. </br>
+
+</br>
+이 과정들을 해결하기 위해 점심시간마다 정기적인 회의를 가지고, 각자의 문제를 공유하거나 기능들이 어떻게 동작해주는지 설명해주는 시간을 가지며 아래 내용들을 배워 볼 수 있었다.
+
+1. SPA 일때, Web은 서버에서 응답한 데이터를 전역 객체 사용하여 한/여러 페이지에서 재사용이 가능하고 이를 통해 추가적인 네트워크 요청/응답을 줄일 수 있다는 점
+2. 네트워크를 통해 동작하는 웹과 WAS 전체적인 아키텍처
+
 </details>
 
 </blockquote>
