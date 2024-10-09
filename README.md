@@ -13,14 +13,17 @@
 + AWS Route 64, AWS EC2, AWS RDS, React
 
 ### ERD
+<blockquote>
 <details>
   <summary>ERD 그림</summary>
   <p>
     <img src="https://github.com/steadykyu/modudogcat_refactoring/blob/main/sampleImage/ERD.png" alt="AWS 아키텍처">
   </p>
 </details>
+</blockquote>
 
 ### 핵심 기능
+<blockquote>
 <details>
   <summary>(1) CSR 아키텍처를 채택하여 RESTful API 호출을 통해 통신하는 쇼핑몰 백엔드 서비스를 설계 및 구현</summary>
   <p> 
@@ -78,20 +81,23 @@
   <summary>(4) Spring Security를 이용한 로그인 기능 개발</summary>
 
 </details>
-
+</blockquote>
 
 ### 트러블 슈팅 경험
 **중요 트러블 슈팅** </br>
-
+<blockquote>
 <details>
- <summary>1. Spring Security 인증 과정에서 영속성 컨텍스트는 주로 UserDetailsService가 사용자 정보를 조회할 때 사용되지만, 사용자 정보가 반환된 후의 인증 과정에서는 영속성 컨텍스트를 벗어난다.</summary>
- 
+ <summary>1. Spring Security 인증 과정에서 영속성 컨텍스트는 주로 UserDetailsService가 사용자 정보를 조회할 때 사용되지만, 사용자 정보가 반환된 후의 인증 과정에서는 영속성 컨텍스트를 벗어난다.</summary> <br>
+	
  <strong>이슈 정의</strong>
  
+ <blockquote>
  회원(USER)의 조회 쿼리에서 ROLE 정보가 조회되지 않게 하고 싶었다. 그래서 권한 정보(Role)을 Lazy Loading으로 설정했는데, 로그인 기능에서LazyinitializationException 이 발생한다.
+ </blockquote>
  
  <strong>사실 수집</strong>
- 
+
+ <blockquote>
  <details>
  <summary>User 엔티티</summary>
  
@@ -136,9 +142,10 @@ org.hibernate.LazyInitializationException: failed to lazily initialize a collect
 	at com.k5.modudogcat.security.userdetails.UserDetailsServiceImpl$UserDetailsImpl.getAuthorities(UserDetailsServiceImpl.java:41) ~[main/:na]
  ```
  </details>
+</blockquote>
 
  <strong>원인 추론</strong>
- 
+ <blockquote>
  <details>
 	 <summary>UserDetailService 와 UserDetail은 영속성 컨테이너의 범위에 속하지 않을 수 있다.</summary>
 
@@ -171,8 +178,11 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 하지만 보통 `UserDetailsImpl` 생성 이후, 데이터베이스와의 상호작용이 없으므로 위 그림의 `(7)` 이후로는 영속성 컨텍스트의 범위에서 제외되고 그렇기 때문에 지연로딩(Lazy loading)이 동작하지 않아 Role 정보를 가져올 수 없게 된다. 그 결과로 `LazyinitializationException`이 발생하는 것이다.
 
  </details>
-
+ </blockquote>
+ 
  <strong>조치 방안 검토</strong>
+
+ <blockquote>
  <details>
 	 <summary>UserDetailImpl 생성 과정에 fetch join을 통해 ROLE 정보를 넣어주자.</summary>
 
@@ -218,9 +228,11 @@ public interface UserRepository extends JpaRepository<User, Long> {
 하지만 이제 fetch Join을 통해 명시적으로 권한 정보를 조회시켰다.
 
  </details>
+ </blockquote>
 
  <strong>결과 관찰</strong>
- 
+
+ <blockquote>
  <details>
 	 <summary>로그인 기능시 쿼리 로그</summary>
 	 
@@ -248,6 +260,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
         user0_.login_id=?
 ```
  </details>
+ </blockquote>
+
+ ---
  	
 </details>
 
@@ -255,11 +270,15 @@ public interface UserRepository extends JpaRepository<User, Long> {
 	<summary>2. 주문 생성시 쿼리 최적화 (N+1 해결 및 select, insert, delete 쿼리 성능 최적화)</summary> <br>
 	
  <strong>이슈 정의</strong>
- 
- 여러 도메인(User, Product등)이 섞인 주문(Order) 생성을 하는 과정에서 예상보다 많은 쿼리들이 발생하여 성능 최적화의 필요성을 느꼈다.
 
- <strong>사실 수집</strong>
+ <blockquote>
+ 여러 도메인(User, Product등)이 섞인 주문(Order) 생성을 하는 과정에서 예상보다 많은 쿼리들이 발생하여 성능 최적화의 필요성을 느꼈다.
+ </blockquote>
  
+ <strong>사실 수집</strong>
+
+ <blockquote>
+	 
  > 주문 생성 기본 로직
 
  <details>
@@ -643,9 +662,12 @@ select
 // 장바구니 속 세부 상품 종류의 수만큼 delete쿼리가 발생
 ```
  </details>
+ </blockquote>
  
  <strong>원인 추론</strong>
-
+ 
+ <blockquote>
+	 
  > Problem (1) : 주문 생성 로직 속의 회원, 장바구니, 세부품목은 1:N:N의 관계인데, 각각 Lazy Loading으로 설정되어 있다.
 
  > Problem (2): N:1 의 관계인 Orderproduct(조인 테이블, N)에 해당하는 Product(1의 관계)를 단건 조회하는 과정에서 N+1 문제가 발생한다.
@@ -687,7 +709,11 @@ public Order createOrder(Order order){
 
 - 만약 Order에서 수백만개의 Product을 등록해서 저장한다고 가정했을때, 수백만개의 OrderProduct가 생성되어야한다. 이때 N관계의 OrderProduct를 저장하기 위해 수백만개의 단건 insert 쿼리가 동작할 것이고, 이는 성능 저하로 이어질 것이다.
 
+</blockquote>
+
  <strong>조치 방안 검토</strong>
+
+<blockquote>
 
  > Problem (1) : fetch join을 활용하여 필요한 부분을 한번에 모두 조회해버린다.
 
@@ -946,17 +972,26 @@ public void removeCartProductsByCarts(List<Cart> carts){
     }
 ```
 (1) 쿼리메소드가 아닌 bulk 연산의 메소드를 적용시킨다.
+
  </details>
+ 
+ </blockquote>
  
 </details>
 
+</blockquote>
+
 <details>
 <summary><b>그 외 트러블 슈팅</b></summary><br>
+
+<blockquote>
 	
 <details>
-  <summary>1. Update 기능 리팩토링하기(merge 방식 → DirtyChecking 방식) </summary>
+  <summary>1. Update 기능 리팩토링하기(merge 방식 → DirtyChecking 방식) </summary> <br>
   <strong>문제정의</strong>
-  
+
+  <blockquote>
+	  
   이전 수정 기능의 코드들을 살펴보겠습니다.
   
   ```java
@@ -979,15 +1014,24 @@ public void removeCartProductsByCarts(List<Cart> carts){
   (1): 디버그를 찍어보면 JpaRepository의 구현체인 SimpleJpaRepository의 save()를 사용한다. 이 방식은 merge() 인 병합의 방식을 사용하는데, 이는 병합에 사용하는 엔티티 객체의 모든 필드를 가져와서
   병합을 시도하므로, 만약 수정되려는 해당 객체의 일부 필드에 null이 존재하는 경우 수정전 필드의 값을 null로 수정할 수 있습니다. 즉 필드 누락의 가능성이 존재합니다.
 
+  </blockquote>
+
   <strong>제안하는 방안</strong>
+
+  <blockquote>
   
-  병합보다 JPA에서 권장하는 변경 감지 방식을 이용하면 수정하지 않는 엔티티 필드값은 유지하고, 수정된 필드의 값만 변경하여 update 쿼리를 날리도록 동작한다.
+병합보다 JPA에서 권장하는 변경 감지 방식을 이용하면 수정하지 않는 엔티티 필드값은 유지하고, 수정된 필드의 값만 변경하여 update 쿼리를 날리도록 동작한다.
   - 필드 누락 가능성 감소
   - 효율적인 SQL 생성
   - 데이터베이스 통신 최소화
   - 캐시 이점 활용
 
+</blockquote>
+
   <strong> 문제 해결</strong>
+
+<blockquote>
+  
   ```java
     @Transactional
     public User updateUser(User user){
@@ -1005,12 +1049,14 @@ public void removeCartProductsByCarts(List<Cart> carts){
         return findUser; 
     }
   ```
-  JPA가 권장하는 변경감지로 동작하도록 명시적으로 save()를 사용하지 않고, 엔티티를 그대로 반환했다. 이제 엔티티는 캐시에 저장된 수정 전의 엔티티와 비교하여 변경감지의 대상이 되어 수정된 필드의 값만 변경한
-  적절한 update 쿼리를 날려준다.
+  JPA가 권장하는 변경감지로 동작하도록 명시적으로 save()를 사용하지 않고, 엔티티를 그대로 반환했다. 이제 엔티티는 캐시에 저장된 수정 전의 엔티티와 비교하여 변경감지의 대상이 되어 수정된 필드의 값만 변경시킨 적절한 update 쿼리를 날려준다.
+
+</blockquote>
   
+<strong>결과 관찰</strong>
 
-**결과 쿼리**
-
+<blockquote>
+	
 ```java
 Hibernate: 
     update
@@ -1028,20 +1074,33 @@ Hibernate:
     where
         user_id=?
 ```
-    
+
+---
+
+</blockquote>
+
 </details>
+
 <details>
-  <summary>2. 페이징시 AWS 서버 프리징 이슈 - 물리적 해결 </summary>
+  <summary>2. 페이징시 AWS 서버 프리징 이슈 - 물리적 해결 </summary> <br>
+	
   <strong>이슈 정의</strong>
+
+  <blockquote>
   
-  프로젝트의 홈페이지는 전체상품을 페이징하여 가져오는 작업이다. 해당 작업시 CPU를 비정상적으로 사용하는 모습을 발견했다.
-  CPU가 비정상적으로 사용되면서, AWS 무료 크레딧이 모두 소진되어 서버가 다운되는 현상이 일어났다.
+프로젝트의 홈페이지는 전체상품을 페이징하여 가져오는 작업이다. 해당 작업시 CPU를 비정상적으로 사용하는 모습을 발견했다. CPU가 비정상적으로 사용되면서, AWS 무료 크레딧이 모두 소진되어 서버가 다운되는 현상이 일어났다.
+
+ </blockquote>
 
   <strong>원인 추론</strong>
 
-  AWS 프리티어에서 제공하는 t2.micro(CPU)는 CPU 크레딧이 라는 개념이 존재한다. 해당 baseline 이라는 허용하는 사용치를 초과해서 사용하면 CPU 성능 제공을 멈춘다. 이러한 이유로 서버가 멈추는 것임을 알았다.
+  <blockquote>
+AWS 프리티어에서 제공하는 t2.micro(CPU)는 CPU 크레딧이 라는 개념이 존재한다. 해당 baseline 이라는 허용하는 사용치를 초과해서 사용하면 CPU 성능 제공을 멈춘다. 이러한 이유로 서버가 멈추는 것임을 알았다.
+  </blockquote>
 
   <strong>조치 방안 검토</strong>
+
+  <blockquote>
   
   (1) 방안: swap 메모리로 RAM 성능을 끌어올리자.
   취준생 신분으로 돈으로 리소스를 늘릴 수는 없어서, SWAP메모리를 통해 EC2의 HDD 리소스를 일부 RAM으로 활용하는 전략을 택했다.
@@ -1052,19 +1111,34 @@ Hibernate:
 
   - 19:00 : 여러 User들의 요청을 페이지네이션
 
+  </blockquote>
+  
   <strong>결과 관찰</strong>
-  
-  결과적으로 이제 서버가 터지지 않고 Spring 프로젝트를 빌드할 수 있고, 페이지네이션에도 문제가 발생하지 않았다.
-</details>
-<details>
-  <summary>3. 페이징시 AWS 프리징 이슈 해결 - select query 성능 최적화 하기</summary>
-  <strong>이슈 정의</strong>
-  
-  홈페이지가 열릴때는 여러 Product 를 조회하도록 페이지네이션 기능이 동작한다. 그런데 해당 페이지를 열때 많은 시간이 걸리는 것을 발견했다.
 
+  <blockquote>
+  
+결과적으로 이제 서버가 터지지 않고 Spring 프로젝트를 빌드할 수 있고, 페이지네이션에도 문제가 발생하지 않았다.
+
+---
+
+  </blockquote>
+
+</details>
+
+<details>
+  <summary>3. 페이징시 AWS 프리징 이슈 해결 - select query 성능 최적화 하기</summary> <br>
+	
+  <strong>이슈 정의</strong>
+
+  <blockquote>
+  홈페이지가 열릴때는 여러 Product 를 조회하도록 페이지네이션 기능이 동작한다. 그런데 해당 페이지를 열때 많은 시간이 걸리는 것을 발견했다.
+  </blockquote>
+  
   <strong>사실 수집 및 원인 추론</strong>
   
-  이전 해당 코드를 작성한 백엔드 개발자와의 소통 부족으로 적절하지 않은 정보들이 응답메시지와 로그에 담기고 있었다. 
+  <blockquote>
+  
+이전 해당 코드를 작성한 백엔드 개발자와의 소통 부족으로 적절하지 않은 정보들이 응답메시지와 로그에 담기고 있었다. 
   
   > 문제1) 페이지마다 같은 내용의 중복 쿼리 내용의 로그가 발생하여 성능을 망가트리고 있다.
   
@@ -1337,11 +1411,16 @@ Size 만큼  N번 반복!!
   
   -> 연관관계 엔티티간의 CasCade, LazyLoading, EagerLoading을 조사하자.
 
+  </blockquote>
+
   <strong> 조치 방안 검토</strong>
 
+  <blockquote>
+
   <details>
-    <summary>문제1 해결: Logging 설정 정보 변경으로 중복 로그 제거하기</summary>
-    ```java
+    <summary>문제1 해결: Logging 설정 정보 변경으로 중복 로그 제거하기</summary> <br>
+	  
+```java
 spring:
   jpa:
     database: mysql
@@ -1360,16 +1439,16 @@ logging:
       hibernate:
         SQL: DEBUG
         type: DEBUG
-    ```
+```
   </details>
 
   <details>
-    <summary>문제2,3,4 해결: 지연 로딩을 통한 쿼리최적화</summary>
-    홈페이지에서 조회에 사용되는 Product를 LazyLoading으로 지정하여 필요한 정보만을 담은 적절한 Response를 만들어준다.
+    <summary>문제2,3,4 해결: 지연 로딩을 통한 쿼리최적화</summary> <br>
+	  
+홈페이지에서 조회에 사용되는 Product를 LazyLoading으로 지정하여 필요한 정보만을 담은 적절한 Response를 만들어준다.
 
-    
-    ```java
-    package com.k5.modudogcat.domain.product.entity;
+```java
+package com.k5.modudogcat.domain.product.entity;
 
 @Entity
 @AllArgsConstructor
@@ -1393,12 +1472,18 @@ public class Product extends Auditable {
     ...
 }
 
-    ```
+```
+
   </details>
+
+  </blockquote>
 
   <strong> 결과 관찰 </strong>
 
-  지연로딩을 통해 필요한 정보만 가진 Response를 생성함으로써 조회 성능이 최적화된 아래의 쿼리로 페이징 기능이 동작한다!
+  <blockquote>
+
+지연로딩을 통해 필요한 정보만 가진 Response를 생성함으로써 조회 성능이 최적화된 아래의 쿼리로 페이징 기능이 동작한다!
+
   ```java
 2024-03-24 18:42:25.391 DEBUG 24548 --- [nio-8080-exec-2] org.hibernate.SQL                        : 
     select
@@ -1427,14 +1512,23 @@ public class Product extends Auditable {
     where
         product0_.product_status not like ? escape ?
   ```
-</details>
-<details>
-  <summary>4. 양방향 @OneToOne 관계에서 Lazy Loading이 동작하지 않는 이슈 해결</summary>
-  <strong>이슈 정의</strong>
+  </blockquote>
   
-  장바구니(Cart) 엔티티는 회원 엔티티와 일대일 관계이고, 장바구니를 연관관계 주인으로 설정해 두었다. 그런데 @OneToOne 양방향 매핑속에서 주인이 아닌 쪽(여기서는 회원)의 조회 쿼리를 날리는 기능을 동작시키니 장바구니 정보가 필요없음에도 장바구니 엔티티를 지연로딩이 아닌 즉시 로딩을 해오고 있다.
+</details>
 
+<details>
+  <summary>4. 양방향 @OneToOne 관계에서 Lazy Loading이 동작하지 않는 이슈 해결</summary> <br>
+  <strong>이슈 정의</strong>
+
+  <blockquote>
+장바구니(Cart) 엔티티는 회원 엔티티와 일대일 관계이고, 장바구니를 연관관계 주인으로 설정해 두었다. 그런데 @OneToOne 양방향 매핑속에서 주인이 아닌 쪽(여기서는 회원)의 조회 쿼리를 날리는 기능을 동작시키니 장바구니 정보가 필요없음에도 장바구니 엔티티를 지연로딩이 아닌 즉시 로딩을 해오고 있다.
+
+  </blockquote>
+  
   <strong>사실 추론</strong>
+
+  <blockquote>
+	  
   <details>
     <summary>User 엔티티</summary>
     
@@ -1513,19 +1607,32 @@ public class User extends Auditable {
 회원을 조회하는 기능에는 당장 장바구니가 필요없어서 Lazy loading으로 엔티티관계를 설정했었다. 그러나 위 쿼리처럼 장바구니가 즉시로딩 되고 있다.
   </details>
 
+  </blockquote>
+
   <strong>원인 추론</strong>
-  
+
+  <blockquote>
+	  
 양방향 매핑의 OneToOne 의 경우, 주인이 아닌 엔티티를 조회할때 주인쪽 엔티티의 외래키 필드에 프록시 객체를 넣어야 할지 null을 넣어야할지 JPA가 유추할 수 없다는 이유로 즉시로딩이 동작하도록 설정되어 있었다.
 DB 시각으로 봐보면 위 설정의 이유를 알 수 있다. 주인이 아닌 엔티티 테이블 정보로 연관관계 엔티티 테이블의 외래키 필드 값의 존재 여부를 알 수 없다. 그러므로 JPA는 주인쪽 외래키 필드에 null을 넣기도 애매하고 프록시 객체를 만들어두기도 애매하여 즉시로딩을 동작시킨다.
 
+  </blockquote>
+
 <strong>조치 방안 검토</strong>
+
+  <blockquote>
+
 1. 설계 구조를  OneToMany 또는 ManyToOne 관계로 변경하기
 2. 장바구니 정보를 페치 조인으로 한개의 쿼리로 전부 조회시키기
 3. byte code instrument을 이용
 
 설계상으로 회원은 여러개의 장바구니를 가질 수 있고 관련 추가 기능 개발시 확장성이 가능하도록 하다는 점, 코드 수정에 큰 리소스가 들어가지 않다는 점을 이유로 장바구니와의 연관관계를 @ManyToOne으로 변경하는 1번의 조치방안을 선택했다.
 
+</blockquote>
+
 <strong>결과 적용 후 관찰</strong>
+
+  <blockquote>
 
 <details>
 <summary>회원(구매자) 조회 쿼리가 이제 장바구니를 제외하고 한번만 조회한다.</summary>
@@ -1553,14 +1660,25 @@ DB 시각으로 봐보면 위 설정의 이유를 알 수 있다. 주인이 아�
     where
         user0_.user_id=?
 ```
-</details>
+
+---
+
+</blockquote>
 
 </details>
 
 </details>
+
+</blockquote>
+
+</details>
+
 
 ### 회고/피드백
 **만족한점** </br>
+
+<blockquote>
+	
 <details>
   <summary>1. APP 개발 과정 중 발생한 트러블 슈팅 과제들을 해결하여 최종적으로 동작하는 서비스를 개발했다.</summary>
   <p>
@@ -1580,7 +1698,12 @@ DB 시각으로 봐보면 위 설정의 이유를 알 수 있다. 주인이 아�
   </p>
 </details>
 
+</blockquote>
+
 **아쉬운점** </br>
+
+<blockquote>
+	
 <details>
   <summary> 1. 팀원들과 깊은 대화를 통해 기획 및 설계하지 못했다.</summary>
   <p>
@@ -1610,4 +1733,4 @@ DB 시각으로 봐보면 위 설정의 이유를 알 수 있다. 주인이 아�
   </p>
 </details>
 
-
+</blockquote>
