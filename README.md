@@ -282,7 +282,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 </details>
 
 <details>
-	<summary>2. 주문 생성시 쿼리 최적화 (N+1 해결 및 select, insert, delete 쿼리 성능 최적화)</summary> <br>
+	<summary>2. 주문 생성 과정 속 쿼리 최적화 (select, insert, delete 쿼리 성능 최적화)</summary> <br>
 	
  <strong>이슈 정의</strong>
 
@@ -1019,6 +1019,307 @@ public void removeCartProductsByCarts(List<Cart> carts){
    <blockquote>
  
    </blockquote>
+ 
+</details>
+
+<details>
+	<summary>3. 페이징 조회시 N+1 문제 해결</summary> <br>
+
+<strong>이슈 정의</strong>
+<blockquote>
+Order 페이징 조회 과정중 N+1 쿼리가 발생하는 것을 발견했다.
+</blockquote>
+
+<strong>사실 수집</strong>
+<blockquote>
+	
+주문 목록 화면
+
+<img src="https://github.com/steadykyu/modudogcat_refactoring/blob/main/sampleImage/studySample/주문목록화면.png" alt="주문 목록 화면">
+
+구매자의 `userId` 와 `Paging Parameter`를 이용해 구매자가 주문한 여러 주문들을 페이징 기능을 통해 조회한다.
+
+<details>
+	<summary>페이징 조회 세부 로직</summary>
+
+**(검증 로직)** 로그인한 구매자의 JWT 토큰에서 얻어온 userId를 활용하면 자동으로 검증된다.
+
+**(조회 로직)**
+
+1. `userId`를 통해 관련된 Order을 조회한다.
+2. `Order.OrderStatus.*ORDER_DELETE` 가 아닌 주문(`Order`)을 가져온다.*
+3. 조회한 Order의 `orderId`로 부터 `ORDERPRODUCT`를 거쳐 `PRODUCT` 엔티티(상품) 의 정보를 가져온다.
+4. 위에서 조회한 Order와 Product 정보를 담은 여러 주문 목록을 페이징 기능을 통해 화면에 보여준다.
+
+</details>
+
+<details>
+	<summary>관련 엔티티 소스코드</summary>
+
+ <details>
+	 <summary> ORDER(주문) </summary>
+
+```java
+@Entity(name = "order_table")
+@AllArgsConstructor
+@NoArgsConstructor
+@Setter
+@Getter
+public class Order extends Auditable {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long orderId;
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private User user;
+    @Column(length = 20, nullable = false)
+    private String receiver;
+    @Column(length = 20, nullable = false)
+    private String phone;
+    @Column(nullable = false)
+    private String receivingAddress;
+    private Long totalPrice;
+    @Enumerated(value = EnumType.STRING)
+    private PayMethod payMethod = PayMethod.NO_BANK_BOOK;
+    @Enumerated(value = EnumType.STRING)
+    private OrderStatus orderStatus = OrderStatus.ORDER_ACTIVE;
+    @OneToMany(mappedBy = "order", cascade = {CascadeType.REMOVE}, orphanRemoval = true)
+    private List<OrderProduct> orderProductList = new ArrayList<>();
+
+    public enum PayMethod{
+        NO_BANK_BOOK("무통장");
+
+        @Getter
+        private final String status;
+        PayMethod(String status){
+            this.status = status;
+        }
+    }
+    public enum OrderStatus{
+        ORDER_ACTIVE("활성화주문"),
+        ORDER_DELETE("삭제된주문");
+        @Getter
+        private final String status;
+        OrderStatus(String status){
+            this.status = status;
+        }
+    }
+
+    /**
+     * 연관관계 편의 메서드
+     */
+    public void setUserAddOrder(User user){
+        this.user = user;
+        user.getOrderList().add(this);
+    }
+}
+```  
+ </details>
+
+ <details>
+	 <summary>ORDERPRODUCT(ORDER, PRODUCT의 JOIN TABLE)</summary>
+
+```java
+@Entity
+@BatchSize(size = 100)
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+public class OrderProduct extends Auditable {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long orderProductId;
+    @ManyToOne
+    @JoinColumn(name = "order_id")
+    private Order order;
+    @ManyToOne
+    @JoinColumn(name = "product_id")
+    private Product product;
+    private Long productCount = 1L;
+    @Column(nullable = true)
+    private String parcelNumber;
+    @Enumerated(value = EnumType.STRING)
+    private OrderProductStatus orderProductStatus = OrderProductStatus.ORDER_PAY_STANDBY;
+
+    public enum OrderProductStatus{
+        ORDER_PAY_STANDBY("결제대기"),
+        ORDER_PAY_FINISH("결제완료"),
+        DELIVERY_PREPARE("베송 준비 중"),
+        DELIVERY_ING("배송 중"),
+        DELIVERY_COMPLETE("배송 완료");
+        @Getter
+        private final String status;
+        OrderProductStatus(String status){
+            this.status = status;
+        }
+    }
+
+    public void setOrderAddOrderProduct(Order order){
+        this.order = order;
+        order.getOrderProductList().add(this);
+    }
+}
+```
+ </details>
+
+ <details>
+	 <summary>PRODUCT(상품)</summary>
+
+```java
+@Entity
+@BatchSize(size = 100)
+@AllArgsConstructor
+@NoArgsConstructor
+@Setter
+@Getter
+public class Product extends Auditable {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long productId;
+    // todo: seller와 연관관계 매핑
+    private String name;
+    @Lob
+    private byte[] thumbnailImage;
+    private String thumbnailImageType;
+    @OneToMany(mappedBy = "product", fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.REMOVE})
+    private List<ProductDetailImage> productDetailImages = new ArrayList<>();
+    @Lob
+    private String productDetail;
+    private Long price;
+    private Long stock;
+    @Enumerated(value = EnumType.STRING)
+    private ProductStatus productStatus = ProductStatus.PRODUCT_ACTIVE;
+    @OneToMany(mappedBy = "product", cascade = {CascadeType.PERSIST, CascadeType.REMOVE})
+    private List<OrderProduct> orderProductList = new ArrayList<>();
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "seller_id")
+    private Seller seller;
+    public enum ProductStatus {
+        PRODUCT_ACTIVE("판매중"),
+        PRODUCT_SOLD_OUT("품절"),
+        PRODUCT_DELETE("삭제된상품");
+        @Getter
+        private String status;
+        ProductStatus(String status){
+            this.status = status;
+        }
+    }
+
+    public void addProductDetailImages(ProductDetailImage pdi){
+        this.productDetailImages.add(pdi);
+        if(pdi != null){
+            pdi.setProduct(this);
+        }
+    }
+}
+```
+ </details>
+</details>
+
+<details>
+	<summary>(N+1 문제)주문 페이징 조회시 발생하는 Log</summary>
+
+(1) 에서 1개의 ORDER 쿼리가 발생한다.
+(2) 에서 N개의 ORDERPRODCUT 쿼리가 발생한다.
+
+```java
+    select
+        order0_.order_id as order_id1_4_,
+        order0_.created_at as created_2_4_,
+        order0_.modified_at as modified3_4_,
+        order0_.order_status as order_st4_4_,
+        order0_.pay_method as pay_meth5_4_,
+        order0_.phone as phone6_4_,
+        order0_.receiver as receiver7_4_,
+        order0_.receiving_address as receivin8_4_,
+        order0_.total_price as total_pr9_4_,
+        order0_.user_id as user_id10_4_ 
+    from
+        order_table order0_ 
+    left outer join
+        user_table user1_ 
+            on order0_.user_id=user1_.user_id 
+    where
+        (
+            order0_.order_status not like ? escape ?
+        ) 
+        and user1_.user_id=? 
+    order by
+        order0_.created_at desc limit ?
+// (1) 1개 쿼리
+
+2024-04-15 16:31:48.199 DEBUG 12280 --- [io-8080-exec-10] org.hibernate.SQL                        : 
+    select
+        orderprodu0_.order_id as order_id7_5_0_,
+        orderprodu0_.order_product_id as order_pr1_5_0_,
+        orderprodu0_.order_product_id as order_pr1_5_1_,
+        orderprodu0_.created_at as created_2_5_1_,
+        orderprodu0_.modified_at as modified3_5_1_,
+        orderprodu0_.order_id as order_id7_5_1_,
+        orderprodu0_.order_product_status as order_pr4_5_1_,
+        orderprodu0_.parcel_number as parcel_n5_5_1_,
+        orderprodu0_.product_id as product_8_5_1_,
+        orderprodu0_.product_count as product_6_5_1_,
+        product1_.product_id as product_1_6_2_,
+        product1_.created_at as created_2_6_2_,
+        product1_.modified_at as modified3_6_2_,
+        product1_.name as name4_6_2_,
+        product1_.price as price5_6_2_,
+        product1_.product_detail as product_6_6_2_,
+        product1_.product_status as product_7_6_2_,
+        product1_.seller_id as seller_11_6_2_,
+        product1_.stock as stock8_6_2_,
+        product1_.thumbnail_image as thumbnai9_6_2_,
+        product1_.thumbnail_image_type as thumbna10_6_2_ 
+    from
+        order_product orderprodu0_ 
+    left outer join
+        product product1_ 
+            on orderprodu0_.product_id=product1_.product_id 
+    where
+        orderprodu0_.order_id=?
+// (2) N개 쿼리 -> Problem
+```
+</details>
+
+<strong>Problem: 1개의 Order를 조회될때,  관련있는 N개의 OrderProduct 조회 쿼리가 발생한다. 페이징 되는 주문의 개수만큼 앞의 N+1문제들이 반복하여 성능 트러블을 만들고 있다.</strong>
+
+</blockquote>
+
+<strong>원인 추론</strong>
+ <blockquote>
+
+  <details>
+	  <summary>Spring Data JPA 의 페이징 기능은 지연로딩 방식으로 동작하기 때문에 N+1 문제를 발생시킨다.</summary>
+
+`OrderService`
+
+```java
+    public Page<Order> findAllBuyerOrders(Pageable pageable, Long userId){
+        PageRequest of = PageRequest.of(pageable.getPageNumber() - 1,
+                pageable.getPageSize(),
+                Sort.by("createdAt").descending());
+        Page<Order> findOrders = orderRepository.findAllByOrderStatusNotLikeAndUserUserId(Order.OrderStatus.ORDER_DELETE, userId, of);
+
+        return findOrders;
+    }
+```
+
+`OrderRepository`
+
+```java
+public interface OrderRepository extends JpaRepository<Order, Long> {
+    Page<Order> findAllByOrderStatusNotLikeAndUserUserId(Order.OrderStatus orderStatus, Long userId, Pageable pageable);
+}
+```
+Spring Data JPA를 이용하여 페이징 기능을 구현하면 Hibernate의 기본 설정인 지연 로딩로직으로 동작한다. 그 과정에서 각각의 OrderProduct를 단건 조회(single record retrieval)하므로 N+1 문제 발생한다.
+  </details>
+ </blockquote>
+	 
+<strong>조치 방안 검토</strong>
+(여기부터)
+<strong>결과 관찰</strong>
  
 </details>
 
