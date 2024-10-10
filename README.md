@@ -1318,9 +1318,199 @@ Spring Data JPA를 이용하여 페이징 기능을 구현하면 Hibernate의 �
  </blockquote>
 	 
 <strong>조치 방안 검토</strong>
-(여기부터)
+
+<blockquote>
+	
+Order 엔티티의 N을 나타내는 컬렉션 필드를 사용할때 @Batchsize 를 통해 지정한 배치 크기로 데이터를 모아서 조회하는 쿼리를 날리도록 설정했다.
+(컬렉션 요소만큼 단건 조회하지 않고, 지정한 배치 크기만큼 조회한다.)
+	
+ <details>
+	 <summary>batch Process 설정(@BatchSize 적용), OrderProduct의 Product 필드를 지연로딩</summary> <br>
+
+`application.properties`
+
+```java
+spring:
+  jpa:
+    ...
+    properties:
+      hibernate:
+        jdbc:
+          default_batch_size: 12
+```
+
+`Order` -  N관계인 `orderProduct` 필드에 `@BatchSize` 적용
+
+```java
+@Entity
+@Table(name = "order_table")
+@AllArgsConstructor
+@NoArgsConstructor
+@Setter
+@Getter
+public class Order extends Auditable {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long orderId;
+	  ...
+//@@@@@@@@@@@@(1)
+    @OneToMany(mappedBy = "order", cascade = {CascadeType.REMOVE}, orphanRemoval = true)
+    @BatchSize(size = 5)
+    private List<OrderProduct> orderProductList = new ArrayList<>();
+```
+(1) 1:N에서 1인 Order 엔티티 속 컬렉션 필드의 값을 사용할때, DB에서 지정한 배치 크기 만큼의 데이터를 가져올 수 있다.
+
+`OrderProduct`
+
+```java
+@Entity
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+public class OrderProduct extends Auditable {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long orderProductId;
+//@@@@ 추가
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_id")
+    private Product product;
+```
+ </details>
+
+<details>
+	<summary>페이징 조회에 배치를 적용한 결과 쿼리</summary> <br>
+
+만약 12개의 Order를 조회하는 페이징이고 5개의 배치크기를 지정했다고 가정하고 진행시, 아래 결과 쿼리가 매핑된다.
++ Order 페이징 쿼리(Order 조회, count 쿼리)
++ Product 쿼리
++ 5개, 5개, 2개의 배치를 적용한 OrderProduct 조회 쿼리
+
+```java
+    select
+        order0_.order_id as order_id1_4_,
+        order0_.created_at as created_2_4_,
+        order0_.modified_at as modified3_4_,
+        order0_.order_status as order_st4_4_,
+        order0_.pay_method as pay_meth5_4_,
+        order0_.phone as phone6_4_,
+        order0_.receiver as receiver7_4_,
+        order0_.receiving_address as receivin8_4_,
+        order0_.total_price as total_pr9_4_,
+        order0_.user_id as user_id10_4_ 
+    from
+        order_table order0_ 
+    left outer join
+        user_table user1_ 
+            on order0_.user_id=user1_.user_id 
+    where
+        (
+            order0_.order_status not like ? escape ?
+        ) 
+        and user1_.user_id=? 
+    order by
+        order0_.created_at desc limit ?
+2024-04-16 11:59:01.769 DEBUG 3108 --- [nio-8080-exec-6] org.hibernate.SQL                        : 
+    select
+        count(order0_.order_id) as col_0_0_ 
+    from
+        order_table order0_ 
+    left outer join
+        user_table user1_ 
+            on order0_.user_id=user1_.user_id 
+    where
+        (
+            order0_.order_status not like ? escape ?
+        ) 
+        and user1_.user_id=?
+2024-04-16 11:59:01.774 DEBUG 3108 --- [nio-8080-exec-6] org.hibernate.SQL                        : 
+    select
+        orderprodu0_.order_id as order_id7_5_1_,
+        orderprodu0_.order_product_id as order_pr1_5_1_,
+        orderprodu0_.order_product_id as order_pr1_5_0_,
+        orderprodu0_.created_at as created_2_5_0_,
+        orderprodu0_.modified_at as modified3_5_0_,
+        orderprodu0_.order_id as order_id7_5_0_,
+        orderprodu0_.order_product_status as order_pr4_5_0_,
+        orderprodu0_.parcel_number as parcel_n5_5_0_,
+        orderprodu0_.product_id as product_8_5_0_,
+        orderprodu0_.product_count as product_6_5_0_ 
+    from
+        order_product orderprodu0_ 
+    where
+        orderprodu0_.order_id in (
+            ?, ?, ?, ?, ?
+        )
+2024-04-16 11:59:01.778 DEBUG 3108 --- [nio-8080-exec-6] org.hibernate.SQL                        : 
+    select
+        product0_.product_id as product_1_6_0_,
+        product0_.created_at as created_2_6_0_,
+        product0_.modified_at as modified3_6_0_,
+        product0_.name as name4_6_0_,
+        product0_.price as price5_6_0_,
+        product0_.product_detail as product_6_6_0_,
+        product0_.product_status as product_7_6_0_,
+        product0_.seller_id as seller_11_6_0_,
+        product0_.stock as stock8_6_0_,
+        product0_.thumbnail_image as thumbnai9_6_0_,
+        product0_.thumbnail_image_type as thumbna10_6_0_ 
+    from
+        product product0_ 
+    where
+        product0_.product_id in (
+            ?, ?, ?
+        )
+2024-04-16 11:59:01.793 DEBUG 3108 --- [nio-8080-exec-6] org.hibernate.SQL                        : 
+    select
+        orderprodu0_.order_id as order_id7_5_1_,
+        orderprodu0_.order_product_id as order_pr1_5_1_,
+        orderprodu0_.order_product_id as order_pr1_5_0_,
+        orderprodu0_.created_at as created_2_5_0_,
+        orderprodu0_.modified_at as modified3_5_0_,
+        orderprodu0_.order_id as order_id7_5_0_,
+        orderprodu0_.order_product_status as order_pr4_5_0_,
+        orderprodu0_.parcel_number as parcel_n5_5_0_,
+        orderprodu0_.product_id as product_8_5_0_,
+        orderprodu0_.product_count as product_6_5_0_ 
+    from
+        order_product orderprodu0_ 
+    where
+        orderprodu0_.order_id in (
+            ?, ?, ?, ?, ?
+        )
+2024-04-16 11:59:01.797 DEBUG 3108 --- [nio-8080-exec-6] org.hibernate.SQL                        : 
+    select
+        orderprodu0_.order_id as order_id7_5_1_,
+        orderprodu0_.order_product_id as order_pr1_5_1_,
+        orderprodu0_.order_product_id as order_pr1_5_0_,
+        orderprodu0_.created_at as created_2_5_0_,
+        orderprodu0_.modified_at as modified3_5_0_,
+        orderprodu0_.order_id as order_id7_5_0_,
+        orderprodu0_.order_product_status as order_pr4_5_0_,
+        orderprodu0_.parcel_number as parcel_n5_5_0_,
+        orderprodu0_.product_id as product_8_5_0_,
+        orderprodu0_.product_count as product_6_5_0_ 
+    from
+        order_product orderprodu0_ 
+    where
+        orderprodu0_.order_id in (
+            ?, ?
+        )
+
+```
+</details>
+
+</blockquote>
+
 <strong>결과 관찰</strong>
- 
+<blockquote>
+
+적절한 배치 크기를 설정해야한다.
++ 너무 큰 배치 크기는 메모리 문제로 서버가 장애가 날 가능성이 있다.
++ 적은 배치 크기는 쿼리수를 증가시켜 성능 저하의 가능성이 있다.
+
+</blockquote> 
 </details>
 
 </blockquote>
