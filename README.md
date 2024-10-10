@@ -102,7 +102,7 @@
 **중요 트러블 슈팅** </br>
 <blockquote>
 <details>
- <summary>1. Spring Security 인증 과정에서 영속성 컨텍스트는 주로 UserDetailsService가 사용자 정보를 조회할 때 사용되지만, 사용자 정보가 반환된 후의 인증 과정에서는 영속성 컨텍스트를 벗어난다.</summary> <br>
+ <summary>1. Spring Security 인증 과정중 UserDetails(사용자 인증 정보) 생성 및 조회되는 과정은 DB정보를 이용하는 영속성 컨텍스트 범위 내에 속하지만, 이후 UserDetails 반환된 후 인증 과정에서는 영속성 컨텍스트 범위를 벗어난다.</summary> <br>
 	
  <strong>이슈 정의</strong>
  
